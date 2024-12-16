@@ -157,6 +157,8 @@ async def capture_amount(update: Update, context: CallbackContext):
         await update.message.reply_text("Invalid input. Please enter a valid number:",
                                         reply_markup=menu_key_markup)
         return ENTER_AMOUNT
+    finally:
+        await update.message.delete()
 
 
 async def cancel_back_to_menu(query: CallbackQuery):
@@ -175,7 +177,9 @@ async def charge_account(user_id: int, chat_id: int, amount: float):
 
     # send status to user
     bot = Bot(token=token)
-    await bot.send_message(chat_id=chat_id, text=textChargeAccount.format(amount, priceUnit))
+    await bot.send_message(chat_id=chat_id,
+                           text=textChargeAccount.format(amount, priceUnit),
+                           reply_markup=menu_key_markup)
 
 
 async def callback_query_handler(update: Update, context: CallbackContext) -> None:
@@ -202,6 +206,7 @@ def main() -> None:
 
     handlers = [
         CommandHandler("start", start_menu),
+        CommandHandler("menu", start_menu),
         CommandHandler("balance", user_balance),
         ConversationHandler(
             entry_points=[CommandHandler("deposit", deposit_money),
@@ -209,7 +214,7 @@ def main() -> None:
             states={
                 ENTER_AMOUNT: [MessageHandler(filters.TEXT & ~filters.COMMAND, capture_amount)],
             },
-            fallbacks=[CommandHandler("menu", cancel_back_to_menu)],
+            fallbacks=[CommandHandler("cancel", cancel_back_to_menu)],
         ),
         CallbackQueryHandler(callback_query_handler),
     ]
