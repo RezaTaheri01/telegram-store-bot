@@ -1,0 +1,35 @@
+{% extends "layout.html" %}
+{% load static %}
+
+{% block title %}{{ title|title }}{% endblock %}
+
+{% block css %}
+    <link rel="stylesheet" href="{% static "telegram_store/css/confirm.css" %}">
+{% endblock %}
+
+{% block body %}
+    <div class="container p-0">
+        <div class="card px-4">
+            <p class="h8 py-3">{{ title|title }}</p>
+            <div class="row gx-3">
+                <form method="post" action="{{ action }}">
+                    {% csrf_token %} {# unique token generator !? needed to send data for security #}
+                    <input type="hidden" value="{{ chat_id }}" name="chat_id">
+                    <input type="hidden" value="{{ user_id }}" name="user_id">
+                    <input type="hidden" value="{{ amount }}" name="amount">
+                    <input type="hidden" value="{{ bot_link }}" name="bot_link">
+                    <input type="hidden" value="{{ transitions_code }}" name="transition">
+                    <div class="col-12">
+                        <button class="btn btn-primary mb-3" type="submit">
+                            <span class="ps-3" id="payment-btn">Pay ${{ amount }}</span>
+                            <span class="fas fa-arrow-right"></span>
+                        </button>
+                    </div>
+                </form>
+                <a href="{{ bot_link }}" class="text-primary text-center">Back to bot</a>
+            </div>
+        </div>
+    </div>
+{% endblock %}
+
+{% block js %}{% endblock %}
