@@ -1,0 +1,21 @@
+{% extends "layout.html" %}
+{% load static %}
+
+{% block title %}{{ title|title }}{% endblock %}
+
+{% block css %}
+    <link rel="stylesheet" href="{% static "telegram_store/css/confirm.css" %}">
+{% endblock %}
+
+{% block body %}
+    <div class="container p-0">
+        <div class="card px-4">
+            <p class="h8 py-3">{{ payment_status }}</p>
+            <div class="row gx-3 py-3">
+                <a href="{{ bot_link }}" class="btn btn-primary text-center">Back to bot</a>
+            </div>
+        </div>
+    </div>
+{% endblock %}
+
+{% block js %}{% endblock %}
