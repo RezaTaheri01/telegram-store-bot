@@ -6,6 +6,7 @@ django.setup()
 
 from asgiref.sync import sync_to_async
 from users.models import UserData
+from payment.models import Transitions
 from telegram import Update, Bot, InlineKeyboardButton, InlineKeyboardMarkup, CallbackQuery
 from telegram.ext import (
     Application,
@@ -41,6 +42,9 @@ textStart = "Hey there {}, What do you want to do?"
 textBalance = "Your current balance is {} {}"
 textAmount = "Enter your amount:"
 textChargeAccount = "Your account was charged {} {} successfully."
+textPayment = "Your pay link is ready"
+payment_url = "http://127.0.0.1:8000/payment?chat_id={}&user_id={}&amount={}&bot_link={}&transition={}"
+bot_link = "https://t.me/gameStorePersiaBot"
 
 token = config("TOKEN")
 
@@ -145,13 +149,30 @@ async def capture_amount(update: Update, context: CallbackContext):
     try:
         amount = float(user_input)
         '''
-        Todo
+        Todo Done :)
         Instead of call charge_account, I need to send a link
         to payment page that created by Django and if successful, call charge_account.
         After payment done, a pop up to open telegram app desktop or mobile.
         charge_account update database and send message to telegram
         '''
-        await charge_account(update.effective_user.id, update.effective_chat.id, amount)
+        chat_id = update.effective_chat.id
+        user_id = update.effective_user.id
+
+        # create a new transition
+        transitions = Transitions(amount=amount)
+        await sync_to_async(transitions.save)()
+        transitions.transitions_code = transitions.id + 1_000_000
+        await sync_to_async(transitions.save)()
+
+        pay_key = [[InlineKeyboardButton(text="Pay", url=payment_url.format(chat_id,
+                                                                            user_id, amount, bot_link,
+                                                                            transitions.transitions_code))]]
+
+        pay_key_markup = InlineKeyboardMarkup(pay_key)
+
+        await update.message.reply_text(text=textPayment,
+                                        reply_markup=pay_key_markup)
+        # await charge_account(update.effective_user.id, update.effective_chat.id, amount)
         return ConversationHandler.END
     except ValueError:
         await update.message.reply_text("Invalid input. Please enter a valid number:",
@@ -170,16 +191,25 @@ async def cancel_back_to_menu(query: CallbackQuery):
 
 
 # Call this after successful payment
-async def charge_account(user_id: int, chat_id: int, amount: float):
+async def charge_account(user_id: int, chat_id: int, amount: float, transition_code: int):
+    transition: Transitions = await sync_to_async(
+        Transitions.objects.filter(transitions_code__exact=transition_code).first)()
+    if not transition or transition.is_payed:
+        return False
+
     current_user: UserData = await sync_to_async(UserData.objects.filter(id=user_id).first)()
     current_user.balance += amount
+
     await sync_to_async(current_user.save)()
+    await sync_to_async(transition.mark_as_paid)()
 
     # send status to user
     bot = Bot(token=token)
     await bot.send_message(chat_id=chat_id,
                            text=textChargeAccount.format(amount, priceUnit),
                            reply_markup=menu_key_markup)
+
+    return True
 
 
 async def callback_query_handler(update: Update, context: CallbackContext) -> None:
