@@ -25,54 +25,53 @@ from telegram.ext import (
 from decouple import config
 # endregion
 
-
-# region Logs
 import logging
 
-# Log errors
-logger = logging.getLogger(__name__)
+if __name__ == "__main__":
+    # region Logs
 
-# Set up logging
-logging.basicConfig(
-    filename='bot_logs/logs.log',
-    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
-    level=logging.WARN
-)
+    # Log errors
+    logger = logging.getLogger(__name__)
 
-# endregion
+    # Set up logging
+    logging.basicConfig(
+        filename='logs.log',
+        format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
+        level=logging.WARN
+    )
 
+    # endregion
 
-# region global variables
-# Keyboard layouts
-main_menu_keys = [
-    [InlineKeyboardButton("My Account", callback_data="account"),
-     InlineKeyboardButton("My Balance", callback_data="balance")],
-    [InlineKeyboardButton("Deposit", callback_data="deposit")],
-]
-main_menu_markup = InlineKeyboardMarkup(main_menu_keys)
+    # region global variables
+    # Keyboard layouts
+    main_menu_keys = [
+        [InlineKeyboardButton("My Account", callback_data="account"),
+         InlineKeyboardButton("My Balance", callback_data="balance")],
+        [InlineKeyboardButton("Deposit", callback_data="deposit")],
+    ]
+    main_menu_markup = InlineKeyboardMarkup(main_menu_keys)
 
-back_menu_key = [
-    [InlineKeyboardButton("Back to menu", callback_data="main_menu")],
-]
-back_menu_markup = InlineKeyboardMarkup(back_menu_key)
+    back_menu_key = [
+        [InlineKeyboardButton("Back to menu", callback_data="main_menu")],
+    ]
+    back_menu_markup = InlineKeyboardMarkup(back_menu_key)
 
-# Define states
-ENTER_AMOUNT = 1
+    # Define states
+    ENTER_AMOUNT = 1
 
-# Text messages
-priceUnit = "dollar"
-textStart = "Hello, {}! How can I assist you today?"
-textBalance = "Your current balance is {} {}."
-textAmount = "Please enter the amount:"
-textChargeAccount = "Your account has been successfully charged {} {}."
-textPayment = "Your payment link is ready."
-payment_url = "http://127.0.0.1:8000/payment/confirm/?chat_id={}&user_id={}&amount={}&bot_link={}&transition={}"
-bot_link = "https://t.me/gameStorePersiaBot"
+    # Text messages
+    priceUnit = "dollar"
+    textStart = "Hello, {}! How can I assist you today?"
+    textBalance = "Your current balance is {} {}."
+    textAmount = "Please enter the amount:"
+    textChargeAccount = "Your account has been successfully charged {} {}."
+    textPayment = "Your payment link is ready."
+    payment_url = "http://127.0.0.1:8000/payment/confirm/?chat_id={}&user_id={}&amount={}&bot_link={}&transition={}"
+    bot_link = "https://t.me/gameStorePersiaBot"
 
-token = config("TOKEN")
+    token = config("TOKEN")
 
-
-# endregion
+    # endregion
 
 
 # region Menu
@@ -183,7 +182,8 @@ async def charge_account(user_id: int, chat_id: int, amount: float, transition_c
 
     # Todo: retry needed
     # send status to user
-    bot = Bot(token=token)
+    tk = config("TOKEN")
+    bot = Bot(token=tk)
     await bot.send_message(chat_id=chat_id,
                            text=textChargeAccount.format(amount, priceUnit),
                            reply_markup=back_menu_markup)
