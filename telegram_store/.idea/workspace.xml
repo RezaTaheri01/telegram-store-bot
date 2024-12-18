@@ -2,24 +2,9 @@
 <project version="4">
   <component name="ChangeListManager">
     <list default="true" id="78d9955a-08d9-4176-bc1e-85cfb20a3e75" name="Changes" comment="">
-      <change beforePath="$PROJECT_DIR$/.idea/.gitignore" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/.idea/inspectionProfiles/Project_Default.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/inspectionProfiles/Project_Default.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/.idea/telegram_store.iml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/telegram_store.iml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/bot.py" beforeDir="false" afterPath="$PROJECT_DIR$/bot.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/payment/admin.py" beforeDir="false" afterPath="$PROJECT_DIR$/payment/admin.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/payment/migrations/0001_initial.py" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/payment/migrations/0002_alter_transitions_transitions_code.py" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/payment/migrations/0003_alter_transitions_data_time.py" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/payment/migrations/0004_alter_transitions_transitions_code.py" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/payment/migrations/0005_alter_transitions_options.py" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/payment/migrations/__init__.py" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/payment/models.py" beforeDir="false" afterPath="$PROJECT_DIR$/payment/models.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/payment/urls.py" beforeDir="false" afterPath="$PROJECT_DIR$/payment/urls.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/payment/views.py" beforeDir="false" afterPath="$PROJECT_DIR$/payment/views.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/telegram_store/urls.py" beforeDir="false" afterPath="$PROJECT_DIR$/telegram_store/urls.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/users/migrations/0001_initial.py" beforeDir="false" afterPath="$PROJECT_DIR$/users/migrations/0001_initial.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/users/migrations/0002_alter_userdata_options_alter_userdata_first_name_and_more.py" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/users/migrations/0003_alter_userdata_first_name_alter_userdata_last_name_and_more.py" beforeDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -103,7 +88,7 @@
       <workItem from="1734423187323" duration="5276000" />
       <workItem from="1734447665897" duration="6903000" />
       <workItem from="1734525726744" duration="2095000" />
-      <workItem from="1734527848742" duration="4156000" />
+      <workItem from="1734527848742" duration="7720000" />
     </task>
     <servers />
   </component>
