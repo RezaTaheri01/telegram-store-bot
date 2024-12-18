@@ -168,7 +168,8 @@ async def check_create_account(update: Update) -> None:
 
 
 # Call this after successful payment
-async def charge_account(user_id: int, chat_id: int, amount: float, transition_code: int):
+async def charge_account(user_id: str, chat_id: str, amount: float, transition_code: int):
+    user_id = int(user_id)
     transition: Transitions = await sync_to_async(
         Transitions.objects.filter(user_id=user_id, transitions_code__exact=transition_code).first)()
     if not transition or transition.is_paid:
@@ -269,7 +270,7 @@ async def callback_query_handler(update: Update, context: CallbackContext) -> No
     query_data = query.data
 
     if query_data == "main_menu":
-        await cancel_back_to_menu(query)
+        await cancel_back_to_menu(update, context)
     elif query_data == "balance":
         await user_balance_from_call_back(update, query)
     elif query_data == "account":
