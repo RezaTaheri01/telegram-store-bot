@@ -27,51 +27,51 @@ from decouple import config
 
 import logging
 
-if __name__ == "__main__":
-    # region Logs
+# region Logs
 
-    # Log errors
-    logger = logging.getLogger(__name__)
+# Log errors
+logger = logging.getLogger(__name__)
 
-    # Set up logging
-    logging.basicConfig(
-        filename='logs.log',
-        format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
-        level=logging.WARN
-    )
+# Set up logging
+logging.basicConfig(
+    filename='logs.log',
+    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
+    level=logging.WARN
+)
 
-    # endregion
+# endregion
 
-    # region global variables
-    # Keyboard layouts
-    main_menu_keys = [
-        [InlineKeyboardButton("My Account", callback_data="account"),
-         InlineKeyboardButton("My Balance", callback_data="balance")],
-        [InlineKeyboardButton("Deposit", callback_data="deposit")],
-    ]
-    main_menu_markup = InlineKeyboardMarkup(main_menu_keys)
+# region global variables
+# Keyboard layouts
+main_menu_keys = [
+    [InlineKeyboardButton("My Account", callback_data="account"),
+     InlineKeyboardButton("My Balance", callback_data="balance")],
+    [InlineKeyboardButton("Deposit", callback_data="deposit")],
+]
+main_menu_markup = InlineKeyboardMarkup(main_menu_keys)
 
-    back_menu_key = [
-        [InlineKeyboardButton("Back to menu", callback_data="main_menu")],
-    ]
-    back_menu_markup = InlineKeyboardMarkup(back_menu_key)
+back_menu_key = [
+    [InlineKeyboardButton("Back to menu", callback_data="main_menu")],
+]
+back_menu_markup = InlineKeyboardMarkup(back_menu_key)
 
-    # Define states
-    ENTER_AMOUNT = 1
+# Define states
+ENTER_AMOUNT = 1
 
-    # Text messages
-    priceUnit = "dollar"
-    textStart = "Hello, {}! How can I assist you today?"
-    textBalance = "Your current balance is {} {}."
-    textAmount = "Please enter the amount:"
-    textChargeAccount = "Your account has been successfully charged {} {}."
-    textPayment = "Your payment link is ready."
-    payment_url = "http://127.0.0.1:8000/payment/confirm/?chat_id={}&user_id={}&amount={}&bot_link={}&transition={}"
-    bot_link = "https://t.me/gameStorePersiaBot"
+# Text messages
+priceUnit = "dollar"
+textStart = "Hello, {}! How can I assist you today?"
+textBalance = "Your current balance is {} {}."
+textAmount = "Please enter the amount:"
+textChargeAccount = "Your account has been successfully charged {} {}."
+textPayment = "Your payment link is ready."
+payment_url = "http://127.0.0.1:8000/payment/confirm/?chat_id={}&user_id={}&amount={}&bot_link={}&transition={}"
+bot_link = "https://t.me/gameStorePersiaBot"
 
-    token = config("TOKEN")
+token = config("TOKEN")
 
-    # endregion
+
+# endregion
 
 
 # region Menu
@@ -182,8 +182,7 @@ async def charge_account(user_id: int, chat_id: int, amount: float, transition_c
 
     # Todo: retry needed
     # send status to user
-    tk = config("TOKEN")
-    bot = Bot(token=tk)
+    bot = await sync_to_async(Bot)(token=token)
     await bot.send_message(chat_id=chat_id,
                            text=textChargeAccount.format(amount, priceUnit),
                            reply_markup=back_menu_markup)
@@ -252,8 +251,11 @@ async def capture_amount(update: Update, context: CallbackContext):
         await update.message.delete()
 
 
-async def cancel_back_to_menu(query: CallbackQuery):
+async def cancel_back_to_menu(update: Update, context: CallbackContext):
+    query: CallbackQuery = update.callback_query
+    await query.answer()
     await menu_from_callback(query)
+    print("Ending conversation...")  # Debug log
     return ConversationHandler.END
 
 
@@ -275,6 +277,20 @@ async def callback_query_handler(update: Update, context: CallbackContext) -> No
                                       reply_markup=back_menu_markup)
 
 
+# Global Error Handler
+async def error_handler(update: Update, context: CallbackContext):
+    try:
+        logger.error(msg="Exception while handling an update:",
+                     exc_info=context.error)
+
+        # Notify the user (optional)
+        if update and update.effective_user:
+            await update.effective_message.reply_text('An error occurred. The bot will continue to work.')
+
+    except Exception as e:
+        logger.error(f"Error in error_handler: {e}")
+
+
 # Main function
 def main() -> None:
     app = Application.builder().token(token).build()
@@ -284,17 +300,24 @@ def main() -> None:
         CommandHandler("menu", start_menu),
         CommandHandler("balance", user_balance),
         ConversationHandler(
-            entry_points=[CommandHandler("deposit", deposit_money),
-                          CallbackQueryHandler(deposit_money_from_callback, pattern="^deposit$"), ],
+            entry_points=[
+                CommandHandler("deposit", deposit_money),
+                CallbackQueryHandler(deposit_money_from_callback, pattern="^deposit$"),
+            ],
             states={
                 ENTER_AMOUNT: [MessageHandler(filters.TEXT & ~filters.COMMAND, capture_amount)],
             },
-            fallbacks=[CommandHandler("cancel", cancel_back_to_menu)],
+            fallbacks=[
+                CommandHandler("cancel", cancel_back_to_menu),
+                CallbackQueryHandler(cancel_back_to_menu, pattern="^main_menu$"),  # For callback button
+            ],
         ),
         CallbackQueryHandler(callback_query_handler),
     ]
 
     app.add_handlers(handlers)
+
+    app.add_error_handler(error_handler)
 
     app.run_polling()
 
