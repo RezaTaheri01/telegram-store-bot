@@ -1,12 +1,17 @@
+# region Django Imports
 import os
 import django
 
 os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'telegram_store.settings')
 django.setup()
 
-from asgiref.sync import sync_to_async
 from users.models import UserData
 from payment.models import Transitions
+# endregion
+
+
+# region Telegram Imports
+from asgiref.sync import sync_to_async
 from telegram import Update, Bot, InlineKeyboardButton, InlineKeyboardMarkup, CallbackQuery
 from telegram.ext import (
     Application,
@@ -18,32 +23,50 @@ from telegram.ext import (
     CallbackContext,
 )
 from decouple import config
+# endregion
+
+
+# region Logs
+import logging
+
+# Log errors
+logger = logging.getLogger(__name__)
+
+# Set up logging
+logging.basicConfig(
+    filename='bot_logs/logs.log',
+    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
+    level=logging.WARN
+)
+
+# endregion
+
 
 # region global variables
 # Keyboard layouts
-keys = [
+main_menu_keys = [
     [InlineKeyboardButton("My Account", callback_data="account"),
      InlineKeyboardButton("My Balance", callback_data="balance")],
     [InlineKeyboardButton("Deposit", callback_data="deposit")],
 ]
-keys_markup = InlineKeyboardMarkup(keys)
+main_menu_markup = InlineKeyboardMarkup(main_menu_keys)
 
-cancel_key = [
-    [InlineKeyboardButton("Back to menu", callback_data="menu")],
+back_menu_key = [
+    [InlineKeyboardButton("Back to menu", callback_data="main_menu")],
 ]
-menu_key_markup = InlineKeyboardMarkup(cancel_key)
+back_menu_markup = InlineKeyboardMarkup(back_menu_key)
 
 # Define states
 ENTER_AMOUNT = 1
 
 # Text messages
 priceUnit = "dollar"
-textStart = "Hey there {}, What do you want to do?"
-textBalance = "Your current balance is {} {}"
-textAmount = "Enter your amount:"
-textChargeAccount = "Your account was charged {} {} successfully."
-textPayment = "Your pay link is ready"
-payment_url = "http://127.0.0.1:8000/payment?chat_id={}&user_id={}&amount={}&bot_link={}&transition={}"
+textStart = "Hello, {}! How can I assist you today?"
+textBalance = "Your current balance is {} {}."
+textAmount = "Please enter the amount:"
+textChargeAccount = "Your account has been successfully charged {} {}."
+textPayment = "Your payment link is ready."
+payment_url = "http://127.0.0.1:8000/payment/confirm/?chat_id={}&user_id={}&amount={}&bot_link={}&transition={}"
 bot_link = "https://t.me/gameStorePersiaBot"
 
 token = config("TOKEN")
@@ -59,21 +82,23 @@ async def start_menu(update: Update, context: CallbackContext) -> None:
         await context.bot.send_message(
             chat_id=update.effective_user.id,
             text=textStart.format(update.effective_user.username),
-            reply_markup=keys_markup,
+            reply_markup=main_menu_markup,
         )
     except Exception as e:
         await update.message.reply_text("Something went wrong :(")
+        logger.error(f"Error in start_menu function: {e}")
 
 
 async def menu_from_callback(query: CallbackQuery) -> None:
     try:
         await query.edit_message_text(
             text=textStart.format(query.from_user.username),
-            reply_markup=keys_markup,
+            reply_markup=main_menu_markup,
         )
     except Exception as e:
         await query.edit_message_text("Something went wrong :(",
                                       reply_markup=None)
+        logger.error(f"Error in menu_from_callback function: {e}")
 
 
 # endregion
@@ -81,22 +106,38 @@ async def menu_from_callback(query: CallbackQuery) -> None:
 
 # region Balance
 async def user_balance(update: Update, context: CallbackContext) -> None:
-    current_user = await sync_to_async(UserData.objects.filter(id=update.effective_user.id).first)()
     balance = 0  # Default balance
+    try:
+        current_user = await sync_to_async(UserData.objects.filter(id=update.effective_user.id).first)()
 
-    if not current_user:
-        await check_create_account(update)
-    else:
-        balance = current_user.balance
+        if not current_user:
+            await check_create_account(update)
+        else:
+            balance = current_user.balance
 
-    await update.message.reply_text(text=textBalance.format(balance, priceUnit),
-                                    reply_markup=menu_key_markup)
+        await update.message.reply_text(text=textBalance.format(balance, priceUnit),
+                                        reply_markup=back_menu_markup)
+    except Exception as e:
+        await update.message.reply_text("Something went wrong :(")
+        logger.error(f"Error in user_balance function: {e}")
 
 
-async def user_balance_from_call_back(query: CallbackQuery) -> None:
-    current_user = await sync_to_async(UserData.objects.filter(id=query.from_user.id).first)()
-    await query.edit_message_text(text=textBalance.format(current_user.balance, priceUnit),
-                                  reply_markup=menu_key_markup)
+async def user_balance_from_call_back(update: Update, query: CallbackQuery) -> None:
+    balance = 0  # Default balance
+    try:
+        current_user = await sync_to_async(UserData.objects.filter(id=query.from_user.id).first)()
+
+        if not current_user:
+            await check_create_account(update)
+        else:
+            balance = current_user.balance
+
+        await query.edit_message_text(text=textBalance.format(balance, priceUnit),
+                                      reply_markup=back_menu_markup)
+    except Exception as e:
+        await query.edit_message_text("Something went wrong :(",
+                                      reply_markup=None)
+        logger.error(f"Error in user_balance_from_call_back function: {e}")
 
 
 # endregion
@@ -124,6 +165,30 @@ async def check_create_account(update: Update) -> None:
             await sync_to_async(new_user.save)()
         except Exception as e:
             await update.message.reply_text("Something went wrong :(")
+            logger.error(f"Error in check_create_account function: {e}")
+
+
+# Call this after successful payment
+async def charge_account(user_id: int, chat_id: int, amount: float, transition_code: int):
+    transition: Transitions = await sync_to_async(
+        Transitions.objects.filter(user_id=user_id, transitions_code__exact=transition_code).first)()
+    if not transition or transition.is_paid:
+        return False
+
+    current_user: UserData = await sync_to_async(UserData.objects.filter(id=user_id).first)()
+    current_user.balance += amount
+
+    await sync_to_async(current_user.save)()
+    await sync_to_async(transition.mark_as_paid)()
+
+    # Todo: retry needed
+    # send status to user
+    bot = Bot(token=token)
+    await bot.send_message(chat_id=chat_id,
+                           text=textChargeAccount.format(amount, priceUnit),
+                           reply_markup=back_menu_markup)
+
+    return True
 
 
 # endregion
@@ -132,14 +197,16 @@ async def check_create_account(update: Update) -> None:
 # region ConversationHandler
 # Deposit money conversation handler
 async def deposit_money(update: Update, context: CallbackContext):
-    await update.message.reply_text(text=textAmount, reply_markup=menu_key_markup)
+    await update.message.reply_text(text=textAmount, reply_markup=back_menu_markup)
     return ENTER_AMOUNT
 
 
 # Deposit money from CallbackQuery
 async def deposit_money_from_callback(update: Update, context: CallbackContext):
     query: CallbackQuery = update.callback_query
-    await query.edit_message_text(text=textAmount, reply_markup=menu_key_markup)
+    if query.data != "deposit":
+        return ConversationHandler.END
+    await query.edit_message_text(text=textAmount, reply_markup=back_menu_markup)
 
     return ENTER_AMOUNT
 
@@ -157,9 +224,10 @@ async def capture_amount(update: Update, context: CallbackContext):
         '''
         chat_id = update.effective_chat.id
         user_id = update.effective_user.id
+        await check_create_account(update)
 
         # create a new transition
-        transitions = Transitions(amount=amount)
+        transitions = Transitions(user_id=user_id, amount=amount)
         await sync_to_async(transitions.save)()
         transitions.transitions_code = transitions.id + 1_000_000
         await sync_to_async(transitions.save)()
@@ -176,8 +244,10 @@ async def capture_amount(update: Update, context: CallbackContext):
         return ConversationHandler.END
     except ValueError:
         await update.message.reply_text("Invalid input. Please enter a valid number:",
-                                        reply_markup=menu_key_markup)
+                                        reply_markup=back_menu_markup)
         return ENTER_AMOUNT
+    except Exception as e:
+        logger.error(f"Error in capture_amount function: {e}")
     finally:
         await update.message.delete()
 
@@ -190,44 +260,19 @@ async def cancel_back_to_menu(query: CallbackQuery):
 # endregion
 
 
-# Call this after successful payment
-async def charge_account(user_id: int, chat_id: int, amount: float, transition_code: int):
-    transition: Transitions = await sync_to_async(
-        Transitions.objects.filter(transitions_code__exact=transition_code).first)()
-    if not transition or transition.is_payed:
-        return False
-
-    current_user: UserData = await sync_to_async(UserData.objects.filter(id=user_id).first)()
-    current_user.balance += amount
-
-    await sync_to_async(current_user.save)()
-    await sync_to_async(transition.mark_as_paid)()
-
-    # send status to user
-    bot = Bot(token=token)
-    await bot.send_message(chat_id=chat_id,
-                           text=textChargeAccount.format(amount, priceUnit),
-                           reply_markup=menu_key_markup)
-
-    return True
-
-
 async def callback_query_handler(update: Update, context: CallbackContext) -> None:
     query: CallbackQuery = update.callback_query
     await query.answer()  # Stop button animation
 
-    # Debugging
-    print(f"Callback data received: {query.data}")
-
     query_data = query.data
 
-    if query_data == "menu":
+    if query_data == "main_menu":
         await cancel_back_to_menu(query)
     elif query_data == "balance":
-        await user_balance_from_call_back(query)
+        await user_balance_from_call_back(update, query)
     elif query_data == "account":
         await query.edit_message_text(text="Account section is under development.",
-                                      reply_markup=menu_key_markup)
+                                      reply_markup=back_menu_markup)
 
 
 # Main function
@@ -250,6 +295,7 @@ def main() -> None:
     ]
 
     app.add_handlers(handlers)
+
     app.run_polling()
 
 
