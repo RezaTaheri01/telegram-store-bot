@@ -160,3 +160,5 @@ cython_debug/
 #.idea/
 
 
+/telegram_store/users/migrations
+/telegram_store/payment/migrations
