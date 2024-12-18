@@ -1,19 +1,17 @@
-from django.http import JsonResponse, Http404
-from django.urls import reverse
 from django.shortcuts import render
-from django.views import View
 
 from bot import charge_account
-
-# Todo: much more to do here:
-# need to check all variable to be correct
-# success page that link to telegram bot
-# need a transitions db that prevent repetitive charge_account
 
 from django.shortcuts import redirect
 from django.urls import reverse
 from django.http import Http404
 from django.views import View
+
+
+# Todo: much more to do here:
+# need to check all variable to be correct
+# success page that link to telegram bot
+# need a transitions db that prevent repetitive charge_account
 
 
 class PaymentView(View):
