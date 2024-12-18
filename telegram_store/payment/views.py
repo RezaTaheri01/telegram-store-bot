@@ -7,6 +7,9 @@ from django.urls import reverse
 from django.http import Http404
 from django.views import View
 
+from .models import Transitions
+from asgiref.sync import sync_to_async
+
 
 # Todo: much more to do here:
 # need to check all variable to be correct
@@ -22,7 +25,7 @@ class PaymentView(View):
             chat_id = request.GET.get('chat_id')
             amount = float(request.GET.get('amount'))
             bot_link = request.GET.get('bot_link')
-            transitions_code = request.GET.get('transition')
+            transition_code = request.GET.get('transition')
         except (ValueError, TypeError):
             raise Http404
 
@@ -33,11 +36,17 @@ class PaymentView(View):
             'chat_id': chat_id,
             'amount': amount,
             'bot_link': bot_link,
-            'transitions_code': transitions_code,
+            'transitions_code': transition_code,
             'action': reverse('payment_confirmation'),  # URL for POST request
         }
 
-        return render(request, 'payment/confirm.html', context)
+        # check if transition not repetitive
+        transition: Transitions = await sync_to_async(
+            Transitions.objects.filter(user_id=user_id, transitions_code__exact=transition_code).first)()
+        if not transition or transition.is_paid:
+            return redirect(f"{reverse('payment_status')}?bot_link={bot_link}&status=failed")
+
+        return render(request, 'payment/confirm.html', context)  # redirect to payment page
 
     async def post(self, request):
         # Todo: here we check transitions_code to not be paid and repetitive
