@@ -21,13 +21,14 @@ from telegram.ext import (
     MessageHandler,
     filters,
     CallbackContext,
+    ContextTypes,
 )
 from decouple import config
 # endregion
 
-import logging
 
 # region Logs
+import logging
 
 # Log errors
 logger = logging.getLogger(__name__)
@@ -41,11 +42,12 @@ logging.basicConfig(
 
 # endregion
 
+
 # region global variables
 # Keyboard layouts
 main_menu_keys = [
-    [InlineKeyboardButton("My Account", callback_data="account"),
-     InlineKeyboardButton("My Balance", callback_data="balance")],
+    [InlineKeyboardButton("My Account", callback_data="acc"),
+     InlineKeyboardButton("My Balance", callback_data="bala")],
     [InlineKeyboardButton("Deposit", callback_data="deposit")],
 ]
 main_menu_markup = InlineKeyboardMarkup(main_menu_keys)
@@ -54,6 +56,19 @@ back_menu_key = [
     [InlineKeyboardButton("Back to menu", callback_data="main_menu")],
 ]
 back_menu_markup = InlineKeyboardMarkup(back_menu_key)
+
+account_keys = [
+    [InlineKeyboardButton("Account Info", callback_data="acc_info"),
+     InlineKeyboardButton("Transitions List", callback_data="trans_list")],
+    [InlineKeyboardButton("Back", callback_data="main_menu")]
+]
+account_keys_markup = InlineKeyboardMarkup(account_keys)
+
+# back to account menu
+back_to_acc_key = [
+    [InlineKeyboardButton("Back", callback_data="acc")],
+]
+back_to_acc_markup = InlineKeyboardMarkup(back_to_acc_key)
 
 # Define states
 ENTER_AMOUNT = 1
@@ -67,6 +82,9 @@ textChargeAccount = "Your account has been successfully charged {} {}."
 textPayment = "Your payment link is ready."
 payment_url = "http://127.0.0.1:8000/payment/confirm/?chat_id={}&user_id={}&amount={}&bot_link={}&transition={}"
 bot_link = "https://t.me/gameStorePersiaBot"
+textNoTransition = "No transition were founded"
+textTransitions = "Here is your last 5 transitions:\n\n"
+textAccountMenu = "Hello, {}! How can I assist you today?"
 
 token = config("TOKEN")
 
@@ -83,6 +101,7 @@ async def start_menu(update: Update, context: CallbackContext) -> None:
             text=textStart.format(update.effective_user.username),
             reply_markup=main_menu_markup,
         )
+        await update.message.delete()
     except Exception as e:
         await update.message.reply_text("Something went wrong :(")
         logger.error(f"Error in start_menu function: {e}")
@@ -116,6 +135,7 @@ async def user_balance(update: Update, context: CallbackContext) -> None:
 
         await update.message.reply_text(text=textBalance.format(balance, priceUnit),
                                         reply_markup=back_menu_markup)
+        await update.message.delete()
     except Exception as e:
         await update.message.reply_text("Something went wrong :(")
         logger.error(f"Error in user_balance function: {e}")
@@ -143,6 +163,44 @@ async def user_balance_from_call_back(update: Update, query: CallbackQuery) -> N
 
 
 # region Manage account
+async def account_menu_call_back(update: Update, query: CallbackQuery):
+    try:
+        await query.edit_message_text(
+            text=textAccountMenu.format(query.from_user.username),
+            reply_markup=account_keys_markup,
+        )
+        await check_create_account(update)
+    except Exception as e:
+        await query.edit_message_text("Something went wrong :(",
+                                      reply_markup=None)
+        logger.error(f"Error in menu_from_callback function: {e}")
+
+
+async def account_transitions(update: Update, context: CallbackQuery):
+    try:
+        query: CallbackQuery = update.callback_query
+
+        # Fetch the last 10 items ordered by -paid_time
+        user_transitions: Transitions = await sync_to_async(
+            lambda: list(
+                Transitions.objects.filter(user_id=update.effective_user.id, is_paid=True)
+                .order_by('-paid_time')[:5]
+            )
+        )()
+
+        result_data = textTransitions
+        for t in user_transitions:
+            result_data += f"Amount: {t.amount} {priceUnit}\nDate: {t.paid_time}\n\n"
+
+        if not user_transitions:
+            return await query.edit_message_text(text=textNoTransition, reply_markup=back_to_acc_markup)
+
+        await query.edit_message_text(text=result_data, reply_markup=back_to_acc_markup)
+
+    except Exception as e:
+        logger.error(f"Error in account_info function: {e}")
+
+
 # Create a user account if it doesn't exist
 async def check_create_account(update: Update) -> None:
     user_id = update.effective_user.id
@@ -198,6 +256,7 @@ async def charge_account(user_id: str, chat_id: str, amount: float, transition_c
 # Deposit money conversation handler
 async def deposit_money(update: Update, context: CallbackContext):
     await update.message.reply_text(text=textAmount, reply_markup=back_menu_markup)
+    await update.message.delete()
     return ENTER_AMOUNT
 
 
@@ -212,6 +271,7 @@ async def deposit_money_from_callback(update: Update, context: CallbackContext):
 
 
 async def capture_amount(update: Update, context: CallbackContext):
+    await context.bot.delete_message(update.effective_chat.id, update.effective_message.id - 1)
     user_input = update.message.text
     try:
         amount = float(user_input)
@@ -263,6 +323,7 @@ async def cancel_back_to_menu(update: Update, context: CallbackContext):
 # endregion
 
 
+# region Handlers
 async def callback_query_handler(update: Update, context: CallbackContext) -> None:
     query: CallbackQuery = update.callback_query
     await query.answer()  # Stop button animation
@@ -270,12 +331,16 @@ async def callback_query_handler(update: Update, context: CallbackContext) -> No
     query_data = query.data
 
     if query_data == "main_menu":
-        await cancel_back_to_menu(update, context)
-    elif query_data == "balance":
+        await menu_from_callback(query)
+    elif query_data == "bala":
         await user_balance_from_call_back(update, query)
-    elif query_data == "account":
-        await query.edit_message_text(text="Account section is under development.",
-                                      reply_markup=back_menu_markup)
+    elif query_data == "acc":  # Account Menu
+        await account_menu_call_back(update, query)
+    elif query_data == "trans_list":  # User Transitions
+        await account_transitions(update, context)
+    elif query_data == "acc_info":  # User Account Info
+        await query.edit_message_text(text="This section is under development",
+                                      reply_markup=back_to_acc_markup)
 
 
 # Global Error Handler
@@ -284,12 +349,20 @@ async def error_handler(update: Update, context: CallbackContext):
         logger.error(msg="Exception while handling an update:",
                      exc_info=context.error)
 
-        # Notify the user (optional)
-        if update and update.effective_user:
-            await update.effective_message.reply_text('An error occurred. The bot will continue to work.')
+        # # Notify the user (optional)
+        # if update and update.effective_user:
+        #     await update.effective_message.reply_text('An error occurred. The bot will continue to work.')
 
     except Exception as e:
         logger.error(f"Error in error_handler: {e}")
+
+
+# endregion
+
+
+# For unknown commands and texts
+async def delete_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    await update.message.delete()
 
 
 # Main function
@@ -313,6 +386,7 @@ def main() -> None:
                 CallbackQueryHandler(cancel_back_to_menu, pattern="^main_menu$"),  # For callback button
             ],
         ),
+        MessageHandler(filters.TEXT, delete_message),  # Performance issue
         CallbackQueryHandler(callback_query_handler),
     ]
 
