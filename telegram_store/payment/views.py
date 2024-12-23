@@ -23,7 +23,7 @@ class PaymentView(View):
         try:
             user_id = request.GET.get('user_id')
             chat_id = request.GET.get('chat_id')
-            amount = float(request.GET.get('amount'))
+            amount = int(request.GET.get('amount'))
             bot_link = request.GET.get('bot_link')
             transition_code = request.GET.get('transition')
         except (ValueError, TypeError):
@@ -43,7 +43,10 @@ class PaymentView(View):
         # check if transition not repetitive
         transition: Transitions = await sync_to_async(
             Transitions.objects.filter(user_id=user_id, transitions_code__exact=transition_code).first)()
-        if not transition or transition.is_paid:
+
+        if not transition or transition.is_paid or transition.is_expired():
+            if transition and transition.is_expired():
+                await sync_to_async(transition.delete)()
             return redirect(f"{reverse('payment_status')}?bot_link={bot_link}&status=failed")
 
         return render(request, 'payment/confirm.html', context)  # redirect to payment page
@@ -56,7 +59,7 @@ class PaymentView(View):
         try:
             user_id = request.POST.get('user_id')
             chat_id = request.POST.get('chat_id')
-            amount = float(request.POST.get('amount'))
+            amount = int(request.POST.get('amount'))
             bot_link = request.POST.get('bot_link')
             transitions_code = request.POST.get('transition')
 
