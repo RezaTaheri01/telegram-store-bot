@@ -11,6 +11,7 @@ class Transitions(models.Model):
     amount = models.IntegerField()
     paid_time = models.DateTimeField(null=True, blank=True)
     is_paid = models.BooleanField(default=False)
+    created_date = models.DateTimeField(auto_now=True)
 
     class Meta:
         ordering = ['-paid_time']
@@ -27,3 +28,6 @@ class Transitions(models.Model):
         self.is_paid = True
         self.paid_time = timezone.now()
         self.save()
+
+    def is_expired(self):
+        return (timezone.now() - self.created_date).total_seconds() > 3600  # 1 hour
