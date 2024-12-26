@@ -1,12 +1,14 @@
 # region Django Imports
 import os
 import django
+from django.utils import timezone
 
 os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'telegram_store.settings')
 django.setup()
 
 from users.models import UserData
 from payment.models import Transitions
+from products.models import Category, Product, ProductDetail
 # endregion
 
 
@@ -48,6 +50,7 @@ logging.basicConfig(
 main_menu_keys = [
     [InlineKeyboardButton("My Account", callback_data="acc"),
      InlineKeyboardButton("My Balance", callback_data="bala")],
+    [InlineKeyboardButton("Product Categories", callback_data="categories")],
     [InlineKeyboardButton("Deposit", callback_data="deposit")],
 ]
 main_menu_markup = InlineKeyboardMarkup(main_menu_keys)
@@ -70,6 +73,9 @@ back_to_acc_key = [
      InlineKeyboardButton("Main Menu", callback_data="main_menu")],
 ]
 back_to_acc_markup = InlineKeyboardMarkup(back_to_acc_key)
+
+back_to_cats_key = [[InlineKeyboardButton('Back', callback_data='categories')]]
+back_to_cats_markup = InlineKeyboardMarkup(back_to_cats_key)
 
 # Define states
 ENTER_AMOUNT = 1
@@ -337,12 +343,129 @@ async def cancel_back_to_menu(update: Update, context: CallbackContext):
 
 # endregion
 
+# region Products
+async def product_categories(query: CallbackQuery):
+    # Fetch categories asynchronously
+    categories = await sync_to_async(list)(Category.objects.all())
+
+    if not categories:
+        await query.edit_message_text(text="Not found", reply_markup=back_menu_markup)
+        return  # Ensure the function exits here if no categories are found
+
+    # Create buttons for categories
+    temp_keys = [
+        [InlineKeyboardButton(cat.name, callback_data=f"category_{cat.id}") for cat in categories[i:i + 2]]
+        for i in range(0, len(categories), 2)
+    ]
+    temp_keys.append(back_menu_key[0])  # Add back button
+    temp_reply_markup = InlineKeyboardMarkup(temp_keys)
+
+    await query.edit_message_text(text="Product Categories", reply_markup=temp_reply_markup)
+
+
+async def products(query: CallbackQuery):
+    try:
+        # Extract category ID from callback data
+        cat_id: int = int(query.data.split('_')[1])
+    except (IndexError, ValueError):
+        await query.answer("Invalid category ID!", show_alert=True)
+        return
+
+    # Fetch products asynchronously
+    all_products = await sync_to_async(list)(Product.objects.filter(category__id=cat_id))
+
+    if not all_products:
+        await query.edit_message_text(text="No products found for this category.", reply_markup=back_to_cats_markup)
+        return
+
+    # Create buttons for products
+    temp_keys = [
+        [InlineKeyboardButton(prod.name, callback_data=f"product_{prod.id}") for prod in all_products[i:i + 2]]
+        for i in range(0, len(all_products), 2)
+    ]
+    temp_keys.append(back_menu_key[0])  # Add back button
+    temp_keys.append([InlineKeyboardButton('Back', callback_data='categories')])
+    temp_reply_markup = InlineKeyboardMarkup(temp_keys)
+
+    await query.edit_message_text(text=f"List of products for category {cat_id}", reply_markup=temp_reply_markup)
+
+
+async def product_payment_detail(query: CallbackQuery):
+    try:
+        # Extract product ID from callback data
+        prod_id: int = int(query.data.split('_')[1])
+    except (IndexError, ValueError):
+        await query.answer("Invalid product ID! Please try again.", show_alert=True)
+        return
+
+    # Fetch product asynchronously
+    product_detail = await sync_to_async(
+        ProductDetail.objects.filter(
+            product_id=prod_id, is_purchased=False
+        ).select_related('product__category').first
+    )()
+
+    if not product_detail:
+        await query.answer("This product is sold out or no longer available.", show_alert=True)
+        return
+
+    # Create inline keyboard buttons
+    temp_keys = [
+        [InlineKeyboardButton('Pay', callback_data=f'payment_{product_detail.price}_{product_detail.product.id}')],
+        [InlineKeyboardButton('Back', callback_data=f'category_{product_detail.product.category.id}')],
+    ]
+    temp_reply_markup = InlineKeyboardMarkup(temp_keys)
+
+    # Edit message to show product details
+    await query.edit_message_text(
+        text=f"The {product_detail.product.name} costs {product_detail.price} {priceUnit}.",
+        reply_markup=temp_reply_markup
+    )
+
+
+async def payment(update: Update, context: CallbackContext, query: CallbackQuery):
+    try:
+        # Extract product ID from callback data
+        payment_amount: int = int(query.data.split('_')[1])
+        prod_id: int = int(query.data.split('_')[2])
+    except (IndexError, ValueError):
+        await query.answer("Invalid payment! Please try again.", show_alert=True)
+        return
+
+    current_user = await sync_to_async(UserData.objects.filter(id=update.effective_user.id).first)()
+
+    if not current_user:
+        await query.answer(text="User not founded", show_alert=True)
+        return
+    if current_user.balance < payment_amount:
+        await query.answer(text="Insufficient Funds", show_alert=True)
+        return
+
+    product: ProductDetail = await sync_to_async(
+        ProductDetail.objects.filter(product_id=prod_id, is_purchased=False).first)()
+
+    if not product:
+        await query.answer(text="Sold Out Sorry", show_alert=True)
+        return
+
+    current_user.balance -= payment_amount
+    product.is_purchased = True
+    product.buyer = current_user
+    product.purchase_date = timezone.now()
+
+    await sync_to_async(product.save)()
+    await sync_to_async(current_user.save)()
+
+    await context.bot.send_message(text=f"Successful, Here is your product:\n{product.details}\nThank You",
+                                   chat_id=update.effective_chat.id)
+    await query.delete_message()
+
+
+# endregion
 
 # region Handlers
 async def callback_query_handler(update: Update, context: CallbackContext) -> None:
     query: CallbackQuery = update.callback_query
-    await query.answer()  # Stop button animation
-
     query_data = query.data
 
     if query_data == "main_menu":  # Main Menu
@@ -355,9 +478,20 @@ async def callback_query_handler(update: Update, context: CallbackContext) -> No
         await account_transitions(query)
     elif query_data == "acc_info":  # User Account Info
         await account_info(query)
+    elif query_data == "categories":
+        await product_categories(query)
+    elif query_data.startswith('category_'):  # selected category
+        await products(query)
+    elif query_data.startswith('product_'):  # selected category
+        await product_payment_detail(query)
+    elif query_data.startswith('payment_'):  # selected category
+        await payment(update, context, query)
+    await query.answer()  # Stop button animation
+    return
+
+    # Global Error Handler
 
 
-# Global Error Handler
 async def error_handler(update: Update, context: CallbackContext):
     try:
         logger.error(msg="Exception while handling an update:",
