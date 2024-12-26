@@ -1,6 +1,6 @@
 # Telegram Bot with Django Integration
 
-This bot is a Python-based Telegram bot integrated with a Django backend for database management and payment handling. Below is an overview of the bot's functionality, setup instructions, and its interaction with the Django backend.
+This bot is a Python-based Telegram bot integrated with a Django backend for database management, payment handling and product selling.
 
 ---
 
@@ -10,6 +10,7 @@ This bot is a Python-based Telegram bot integrated with a Django backend for dat
 - **User Account Management**:
   - Automatically creates a user account if it doesn't exist.
   - Retrieves and displays user balance.
+  - Show user transactions.
 - **Interactive Menu**:
   - Main menu with options like **My Account**, **My Balance**, and **Deposit**.
   - Inline keyboards for seamless navigation.
