@@ -42,11 +42,10 @@ class PaymentView(View):
 
         # check if transition not repetitive
         transition: Transitions = await sync_to_async(
-            Transitions.objects.filter(user_id=user_id, transitions_code__exact=transition_code).first)()
+            Transitions.objects.filter(user_id=user_id, transitions_code__exact=transition_code,
+                                       is_delete=False).first)()
 
         if not transition or transition.is_paid or transition.is_expired():
-            if transition and transition.is_expired():
-                await sync_to_async(transition.delete)()
             return redirect(f"{reverse('payment_status')}?bot_link={bot_link}&status=failed")
 
         return render(request, 'payment/confirm.html', context)  # redirect to payment page
@@ -54,7 +53,7 @@ class PaymentView(View):
     async def post(self, request):
         # Todo: here we check transitions_code to not be paid and repetitive
         bot_link = ""
-        status = "success"
+        status = "failed"
         # Handles charging the account
         try:
             user_id = request.POST.get('user_id')
@@ -64,9 +63,9 @@ class PaymentView(View):
             transitions_code = request.POST.get('transition')
 
             # Call async function to charge the account
-            res = await charge_account(user_id, chat_id, amount, int(transitions_code))
-            if not res:
-                status = "failed"
+            res: bool = await charge_account(user_id, chat_id, amount, int(transitions_code))
+            if res:
+                status = "success"
 
         except (ValueError, TypeError):
             return redirect(
