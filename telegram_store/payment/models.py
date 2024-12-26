@@ -9,7 +9,7 @@ from bot_settings import valid_link_in_seconds
 class Transitions(models.Model):
     user = models.ForeignKey(to=UserData, on_delete=models.CASCADE, verbose_name="User")
     transitions_code = models.IntegerField(unique=True, blank=True, null=True)
-    amount = models.IntegerField(max_length=32)
+    amount = models.IntegerField()
     paid_time = models.DateTimeField(null=True, blank=True)
     is_paid = models.BooleanField(default=False)
     created_date = models.DateTimeField(auto_now=True)
