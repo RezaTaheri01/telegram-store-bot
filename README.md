@@ -52,7 +52,6 @@ This bot is a Python-based Telegram bot integrated with a Django backend for dat
 
 3. **Configure Django Settings**:
    - Set the `telegram_store.settings` module.
-   - Add `users` and `payment` apps to `INSTALLED_APPS`.
    - Configure your database in `settings.py`.
 
 4. **Set Up Environment Variables**:
@@ -63,7 +62,7 @@ This bot is a Python-based Telegram bot integrated with a Django backend for dat
 
 5. **Migrate the Database**:
    ```bash
-   python manage.py makemigrations payment users
+   python manage.py makemigrations payment users products
    python manage.py migrate
    ```
 
