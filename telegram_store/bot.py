@@ -1,3 +1,13 @@
+# region bot settings
+# Todo: manage import when call charge account
+if __name__ == "__main__":
+    from bot_settings import *
+else:
+    textChargeAccount = "Your account has been successfully charged {} {}."  # amount, price unit
+    textPriceUnit = "dollar"
+# endregion
+
+
 # region Django Imports
 import os
 import django
@@ -8,13 +18,14 @@ django.setup()
 
 from users.models import UserData
 from payment.models import Transitions
-from products.models import Category, Product, ProductDetail
+
+if __name__ == "__main__":
+    from products.models import Category, Product, ProductDetail
 # endregion
 
 
 # region Telegram Imports
-from asgiref.sync import sync_to_async
-from telegram import Update, Bot, InlineKeyboardButton, InlineKeyboardMarkup, CallbackQuery
+from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup, CallbackQuery
 from telegram.ext import (
     Application,
     CommandHandler,
@@ -25,6 +36,8 @@ from telegram.ext import (
     CallbackContext,
     ContextTypes,
 )
+from telegram import Bot
+from asgiref.sync import sync_to_async
 from decouple import config
 # endregion
 
@@ -46,53 +59,9 @@ logging.basicConfig(
 
 
 # region global variables
-# Keyboard layouts
-main_menu_keys = [
-    [InlineKeyboardButton("My Account", callback_data="acc"),
-     InlineKeyboardButton("My Balance", callback_data="bala")],
-    [InlineKeyboardButton("Product Categories", callback_data="categories")],
-    [InlineKeyboardButton("Deposit", callback_data="deposit")],
-]
-main_menu_markup = InlineKeyboardMarkup(main_menu_keys)
-
-back_menu_key = [
-    [InlineKeyboardButton("Back to menu", callback_data="main_menu")],
-]
-back_menu_markup = InlineKeyboardMarkup(back_menu_key)
-
-account_keys = [
-    [InlineKeyboardButton("Account Info", callback_data="acc_info"),
-     InlineKeyboardButton("Transitions List", callback_data="trans_list")],
-    [InlineKeyboardButton("Back", callback_data="main_menu")]
-]
-account_keys_markup = InlineKeyboardMarkup(account_keys)
-
-# back to account menu
-back_to_acc_key = [
-    [InlineKeyboardButton("Back", callback_data="acc"),
-     InlineKeyboardButton("Main Menu", callback_data="main_menu")],
-]
-back_to_acc_markup = InlineKeyboardMarkup(back_to_acc_key)
-
-back_to_cats_key = [[InlineKeyboardButton('Back', callback_data='categories')]]
-back_to_cats_markup = InlineKeyboardMarkup(back_to_cats_key)
 
 # Define states
 ENTER_AMOUNT = 1
-
-# Text messages
-priceUnit = "dollar"
-textStart = "Hello, {}! How can I assist you today?"
-textBalance = "Your current balance is {} {}."
-textAmount = "Please enter the amount:"
-textChargeAccount = "Your account has been successfully charged {} {}."
-textPayment = "Your payment link is ready and it's valid for 1 hour."
-payment_url = "http://127.0.0.1:8000/payment/confirm/?chat_id={}&user_id={}&amount={}&bot_link={}&transition={}"
-bot_link = "https://t.me/gameStorePersiaBot"
-textNoTransition = "No transition were founded"
-textTransitions = "Here is your last 5 transitions:\n\n"
-textAccountMenu = "Hello, {}! How can I assist you today?"
-textAccInfo = "Username: {}\nFull name: {}\nBalance: {}"
 
 token = config("TOKEN")
 
@@ -101,7 +70,8 @@ token = config("TOKEN")
 
 
 # region Menu
-async def start_menu(update: Update, context: CallbackContext) -> None:
+
+async def start_menu(update: Update, context: CallbackContext) -> None:  # active command is /start
     try:
         await check_create_account(update)  # Create a user if not exist
         await context.bot.send_message(
@@ -111,18 +81,18 @@ async def start_menu(update: Update, context: CallbackContext) -> None:
         )
         await update.message.delete()
     except Exception as e:
-        await update.message.reply_text("Something went wrong :(", reply_markup=back_menu_markup)
+        await update.message.reply_text(textError, reply_markup=back_menu_markup)
         logger.error(f"Error in start_menu function: {e}")
 
 
 async def menu_from_callback(query: CallbackQuery) -> None:
     try:
         await query.edit_message_text(
-            text=textStart.format(query.from_user.username),
+            text=textMenu,
             reply_markup=main_menu_markup,
         )
     except Exception as e:
-        await query.edit_message_text("Something went wrong :(",
+        await query.edit_message_text(textError,
                                       reply_markup=main_menu_markup)
         logger.error(f"Error in menu_from_callback function: {e}")
 
@@ -131,6 +101,7 @@ async def menu_from_callback(query: CallbackQuery) -> None:
 
 
 # region Balance
+
 async def user_balance(update: Update, context: CallbackContext) -> None:
     balance = 0  # Default balance
     try:
@@ -141,11 +112,11 @@ async def user_balance(update: Update, context: CallbackContext) -> None:
         else:
             balance = current_user.balance
 
-        await update.message.reply_text(text=textBalance.format(balance, priceUnit),
+        await update.message.reply_text(text=textBalance.format(balance, textPriceUnit),
                                         reply_markup=back_menu_markup)
         await update.message.delete()
     except Exception as e:
-        await update.message.reply_text("Something went wrong :(")
+        await update.message.reply_text(textError)
         logger.error(f"Error in user_balance function: {e}")
 
 
@@ -159,10 +130,10 @@ async def user_balance_from_call_back(update: Update, query: CallbackQuery) -> N
         else:
             balance = current_user.balance
 
-        await query.edit_message_text(text=textBalance.format(balance, priceUnit),
+        await query.edit_message_text(text=textBalance.format(balance, textPriceUnit),
                                       reply_markup=back_menu_markup)
     except Exception as e:
-        await query.edit_message_text("Something went wrong :(",
+        await query.edit_message_text(textError,
                                       reply_markup=back_menu_markup)
         logger.error(f"Error in user_balance_from_call_back function: {e}")
 
@@ -171,6 +142,8 @@ async def user_balance_from_call_back(update: Update, query: CallbackQuery) -> N
 
 
 # region Manage account
+
+# Todo: function that return purchased products
 async def account_menu_call_back(query: CallbackQuery):
     try:
         await query.edit_message_text(
@@ -178,7 +151,7 @@ async def account_menu_call_back(query: CallbackQuery):
             reply_markup=account_keys_markup,
         )
     except Exception as e:
-        await query.edit_message_text("Something went wrong :(",
+        await query.edit_message_text(textError,
                                       reply_markup=back_menu_markup)
         logger.error(f"Error in menu_from_callback function: {e}")
 
@@ -188,13 +161,14 @@ async def account_info(query: CallbackQuery) -> None:
     user_data = await sync_to_async(UserData.objects.filter(id=user_id).first)()
 
     if not user_data:
-        await query.edit_message_text(text="User not founded", reply_markup=back_to_acc_markup)
+        await query.edit_message_text(text=textNotUser, reply_markup=back_to_acc_markup)
         return
 
     await query.edit_message_text(text=textAccInfo.format(
         user_data.username,
         (user_data.first_name or "") + (user_data.last_name or ""),
-        user_data.balance),
+        user_data.balance,
+        textPriceUnit),
         reply_markup=back_to_acc_markup)
 
 
@@ -214,7 +188,7 @@ async def account_transitions(query: CallbackQuery) -> None:
 
         result_data = textTransitions
         for t in user_transitions:
-            result_data += f"Amount: {t.amount} {priceUnit}\nDate: {t.paid_time}\n\n"
+            result_data += f"Amount: {t.amount} {textPriceUnit}\nDate: {t.paid_time}\n\n"
 
         await query.edit_message_text(text=result_data, reply_markup=back_to_acc_markup)
 
@@ -242,16 +216,20 @@ async def check_create_account(update: Update) -> None:
             )
             await sync_to_async(new_user.save)()
         except Exception as e:
-            await update.message.reply_text("Something went wrong :(")
+            await update.message.reply_text(textError)
             logger.error(f"Error in check_create_account function: {e}")
 
 
 # Call this after successful payment
 async def charge_account(user_id: str, chat_id: str, amount: int, transition_code: int):
-    user_id = int(user_id)
+    user_id: int = int(user_id)
+
     transition: Transitions = await sync_to_async(
-        Transitions.objects.filter(user_id=user_id, transitions_code__exact=transition_code).first)()
-    if not transition or transition.is_paid or transition.is_expired():
+        Transitions.objects.filter(user_id=user_id,
+                                   transitions_code__exact=transition_code,
+                                   is_delete=False).first)()
+
+    if not transition or transition.is_paid or transition.is_expired():  # double check :)
         return False
 
     current_user: UserData = await sync_to_async(UserData.objects.filter(id=user_id).first)()
@@ -264,8 +242,8 @@ async def charge_account(user_id: str, chat_id: str, amount: int, transition_cod
     # send status to user
     bot = await sync_to_async(Bot)(token=token)
     await bot.send_message(chat_id=chat_id,
-                           text=textChargeAccount.format(amount, priceUnit),
-                           reply_markup=back_menu_markup)
+                           text=textChargeAccount.format(amount, textPriceUnit),
+                           reply_markup=None)
 
     return True
 
@@ -313,18 +291,18 @@ async def capture_amount(update: Update, context: CallbackContext):
         transitions.transitions_code = transitions.id + 1_000_000
         await sync_to_async(transitions.save)()
 
-        pay_key = [[InlineKeyboardButton(text="Pay", url=payment_url.format(chat_id,
-                                                                            user_id, amount, bot_link,
-                                                                            transitions.transitions_code))]]
+        pay_key = [[InlineKeyboardButton(text=textPayButton, url=payment_url.format(chat_id,
+                                                                                    user_id, amount, bot_link,
+                                                                                    transitions.transitions_code))]]
 
         pay_key_markup = InlineKeyboardMarkup(pay_key)
 
-        await update.message.reply_text(text=textPayment,
+        await update.message.reply_text(text=textPaymentLink,
                                         reply_markup=pay_key_markup)
         # await charge_account(update.effective_user.id, update.effective_chat.id, amount)
         return ConversationHandler.END
     except ValueError:
-        await update.message.reply_text("Invalid input. Please enter a valid number:",
+        await update.message.reply_text(textInvalidAmount,
                                         reply_markup=back_menu_markup)
         return ENTER_AMOUNT
     except Exception as e:
@@ -343,24 +321,26 @@ async def cancel_back_to_menu(update: Update, context: CallbackContext):
 
 # endregion
 
+
 # region Products
 async def product_categories(query: CallbackQuery):
     # Fetch categories asynchronously
     categories = await sync_to_async(list)(Category.objects.all())
 
     if not categories:
-        await query.edit_message_text(text="Not found", reply_markup=back_menu_markup)
+        await query.edit_message_text(text=textNotFound, reply_markup=back_menu_markup)
         return  # Ensure the function exits here if no categories are found
 
     # Create buttons for categories
     temp_keys = [
-        [InlineKeyboardButton(cat.name, callback_data=f"category_{cat.id}") for cat in categories[i:i + 2]]
-        for i in range(0, len(categories), 2)
+        [InlineKeyboardButton(cat.name, callback_data=f"category_{cat.id}") for cat in
+         categories[i:i + categories_in_row]]
+        for i in range(0, len(categories), categories_in_row)
     ]
     temp_keys.append(back_menu_key[0])  # Add back button
     temp_reply_markup = InlineKeyboardMarkup(temp_keys)
 
-    await query.edit_message_text(text="Product Categories", reply_markup=temp_reply_markup)
+    await query.edit_message_text(text=textProductCategories, reply_markup=temp_reply_markup)
 
 
 async def products(query: CallbackQuery):
@@ -368,26 +348,33 @@ async def products(query: CallbackQuery):
         # Extract category ID from callback data
         cat_id: int = int(query.data.split('_')[1])
     except (IndexError, ValueError):
-        await query.answer("Invalid category ID!", show_alert=True)
+        await query.answer(textInvalidCategory, show_alert=True)
         return
 
     # Fetch products asynchronously
     all_products = await sync_to_async(list)(Product.objects.filter(category__id=cat_id))
 
     if not all_products:
-        await query.edit_message_text(text="No products found for this category.", reply_markup=back_to_cats_markup)
+        await query.edit_message_text(text=textNoProductFound, reply_markup=back_to_cats_markup)
         return
 
     # Create buttons for products
     temp_keys = [
-        [InlineKeyboardButton(prod.name, callback_data=f"product_{prod.id}") for prod in all_products[i:i + 2]]
-        for i in range(0, len(all_products), 2)
+        [InlineKeyboardButton(prod.name, callback_data=f"product_{prod.id}") for prod in all_products[i:i + products_in_row]]
+        for i in range(0, len(all_products), products_in_row)
     ]
     temp_keys.append(back_menu_key[0])  # Add back button
-    temp_keys.append([InlineKeyboardButton('Back', callback_data='categories')])
+    temp_keys.append([InlineKeyboardButton(textBackButton, callback_data='categories')])
     temp_reply_markup = InlineKeyboardMarkup(temp_keys)
 
-    await query.edit_message_text(text=f"List of products for category {cat_id}", reply_markup=temp_reply_markup)
+    # Get category name
+    current_cat: Category = await sync_to_async(Category.objects.filter(id=cat_id, is_delete=False).first)()
+    cat_name = "The"
+    if current_cat:
+        cat_name = current_cat.name
+    # print(cat_name)
+
+    await query.edit_message_text(text=textProductList.format(cat_name), reply_markup=temp_reply_markup)
 
 
 async def product_payment_detail(query: CallbackQuery):
@@ -395,7 +382,7 @@ async def product_payment_detail(query: CallbackQuery):
         # Extract product ID from callback data
         prod_id: int = int(query.data.split('_')[1])
     except (IndexError, ValueError):
-        await query.answer("Invalid product ID! Please try again.", show_alert=True)
+        await query.answer(textInvalidProduct, show_alert=True)
         return
 
     # Fetch product asynchronously
@@ -406,7 +393,7 @@ async def product_payment_detail(query: CallbackQuery):
     )()
 
     if not product_detail:
-        await query.answer("This product is sold out or no longer available.", show_alert=True)
+        await query.answer(textProductSoldOut, show_alert=True)
         return
 
     # Create inline keyboard buttons
@@ -418,7 +405,7 @@ async def product_payment_detail(query: CallbackQuery):
 
     # Edit message to show product details
     await query.edit_message_text(
-        text=f"The {product_detail.product.name} costs {product_detail.price} {priceUnit}.",
+        text=textPurchaseBill.format(product_detail.product.name, product_detail.price, textPriceUnit),
         reply_markup=temp_reply_markup
     )
 
@@ -429,23 +416,23 @@ async def payment(update: Update, context: CallbackContext, query: CallbackQuery
         payment_amount: int = int(query.data.split('_')[1])
         prod_id: int = int(query.data.split('_')[2])
     except (IndexError, ValueError):
-        await query.answer("Invalid payment! Please try again.", show_alert=True)
+        await query.answer(textInvalidPaymentAmount, show_alert=True)
         return
 
     current_user = await sync_to_async(UserData.objects.filter(id=update.effective_user.id).first)()
 
     if not current_user:
-        await query.answer(text="User not founded", show_alert=True)
+        await query.answer(text=textNotUser, show_alert=True)
         return
     if current_user.balance < payment_amount:
-        await query.answer(text="Insufficient Funds", show_alert=True)
+        await query.answer(text=textNotEnoughMoney, show_alert=True)
         return
 
     product: ProductDetail = await sync_to_async(
         ProductDetail.objects.filter(product_id=prod_id, is_purchased=False).first)()
 
     if not product:
-        await query.answer(text="Sold Out Sorry", show_alert=True)
+        await query.answer(text=textProductSoldOut, show_alert=True)
         return
 
     current_user.balance -= payment_amount
@@ -456,18 +443,19 @@ async def payment(update: Update, context: CallbackContext, query: CallbackQuery
     await sync_to_async(product.save)()
     await sync_to_async(current_user.save)()
 
-    await context.bot.send_message(text=f"Successful, Here is your product:\n{product.details}\nThank You",
+    await context.bot.send_message(text=textProductDetail.format(product.details),
                                    chat_id=update.effective_chat.id)
-    await query.delete_message()
+    # await query.delete_message()
 
 
 # endregion
+
 
 # region Handlers
 async def callback_query_handler(update: Update, context: CallbackContext) -> None:
     query: CallbackQuery = update.callback_query
     query_data = query.data
-
+    # Todo: convert it to switch case
     if query_data == "main_menu":  # Main Menu
         await menu_from_callback(query)
     elif query_data == "bala":  # User Balance
@@ -486,21 +474,19 @@ async def callback_query_handler(update: Update, context: CallbackContext) -> No
         await product_payment_detail(query)
     elif query_data.startswith('payment_'):  # selected category
         await payment(update, context, query)
+
     await query.answer()  # Stop button animation
     return
 
-    # Global Error Handler
 
-
+# Global Error Handler
 async def error_handler(update: Update, context: CallbackContext):
     try:
         logger.error(msg="Exception while handling an update:",
                      exc_info=context.error)
-
         # # Notify the user (optional)
         # if update and update.effective_user:
         #     await update.effective_message.reply_text('An error occurred. The bot will continue to work.')
-
     except Exception as e:
         logger.error(f"Error in error_handler: {e}")
 
