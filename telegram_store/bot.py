@@ -17,7 +17,7 @@ os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'telegram_store.settings')
 django.setup()
 
 from users.models import UserData
-from payment.models import Transitions
+from payment.models import Transactions
 
 if __name__ == "__main__":
     from products.models import Category, Product, ProductDetail
@@ -172,22 +172,22 @@ async def account_info(query: CallbackQuery) -> None:
         reply_markup=back_to_acc_markup)
 
 
-async def account_transitions(query: CallbackQuery) -> None:
+async def account_transactions(query: CallbackQuery) -> None:
     try:
         # Fetch the last 10 items ordered by -paid_time
-        user_transitions: Transitions = await sync_to_async(
+        user_transaction: Transactions = await sync_to_async(
             lambda: list(
-                Transitions.objects.filter(user_id=query.from_user.id, is_paid=True)
+                Transactions.objects.filter(user_id=query.from_user.id, is_paid=True)
                 .order_by('-paid_time')[:5]
             )
         )()
 
-        if not user_transitions:
-            await query.edit_message_text(text=textNoTransition, reply_markup=back_to_acc_markup)
+        if not user_transaction:
+            await query.edit_message_text(text=textNoTransaction, reply_markup=back_to_acc_markup)
             return
 
-        result_data = textTransitions
-        for t in user_transitions:
+        result_data = textTransaction
+        for t in user_transaction:
             result_data += f"Amount: {t.amount} {textPriceUnit}\nDate: {t.paid_time}\n\n"
 
         await query.edit_message_text(text=result_data, reply_markup=back_to_acc_markup)
@@ -221,22 +221,22 @@ async def check_create_account(update: Update) -> None:
 
 
 # Call this after successful payment
-async def charge_account(user_id: str, chat_id: str, amount: int, transition_code: int):
+async def charge_account(user_id: str, chat_id: str, amount: int, transaction_code: int):
     user_id: int = int(user_id)
 
-    transition: Transitions = await sync_to_async(
-        Transitions.objects.filter(user_id=user_id,
-                                   transitions_code__exact=transition_code,
-                                   is_delete=False).first)()
+    transaction: Transactions = await sync_to_async(
+        Transactions.objects.filter(user_id=user_id,
+                                    transaction_code__exact=transaction_code,
+                                    is_delete=False).first)()
 
-    if not transition or transition.is_paid or transition.is_expired():  # double check :)
+    if not transaction or transaction.is_paid or transaction.is_expired():  # double check :)
         return False
 
     current_user: UserData = await sync_to_async(UserData.objects.filter(id=user_id).first)()
     current_user.balance += amount
 
     await sync_to_async(current_user.save)()
-    await sync_to_async(transition.mark_as_paid)()
+    await sync_to_async(transaction.mark_as_paid)()
 
     # Todo: retry needed
     # send status to user
@@ -285,15 +285,15 @@ async def capture_amount(update: Update, context: CallbackContext):
         user_id = update.effective_user.id
         await check_create_account(update)
 
-        # create a new transition
-        transitions = Transitions(user_id=user_id, amount=amount)
-        await sync_to_async(transitions.save)()
-        transitions.transitions_code = transitions.id + 1_000_000
-        await sync_to_async(transitions.save)()
+        # create a new transaction
+        transaction = Transactions(user_id=user_id, amount=amount)
+        await sync_to_async(transaction.save)()
+        transaction.transaction_code = transaction.id + 1_000_000
+        await sync_to_async(transaction.save)()
 
         pay_key = [[InlineKeyboardButton(text=textPayButton, url=payment_url.format(chat_id,
                                                                                     user_id, amount, bot_link,
-                                                                                    transitions.transitions_code))]]
+                                                                                    transaction.transaction_code))]]
 
         pay_key_markup = InlineKeyboardMarkup(pay_key)
 
@@ -462,8 +462,8 @@ async def callback_query_handler(update: Update, context: CallbackContext) -> No
         await user_balance_from_call_back(update, query)
     elif query_data == "acc":  # Account Menu
         await account_menu_call_back(query)
-    elif query_data == "trans_list":  # User Transitions
-        await account_transitions(query)
+    elif query_data == "trans_list":  # User Transactions
+        await account_transactions(query)
     elif query_data == "acc_info":  # User Account Info
         await account_info(query)
     elif query_data == "categories":

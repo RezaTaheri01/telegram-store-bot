@@ -6,9 +6,9 @@ from bot_settings import valid_link_in_seconds
 
 # Create your models here.
 
-class Transitions(models.Model):
+class Transactions(models.Model):
     user = models.ForeignKey(to=UserData, on_delete=models.CASCADE, verbose_name="User")
-    transitions_code = models.IntegerField(unique=True, blank=True, null=True)
+    transaction_code = models.IntegerField(unique=True, blank=True, null=True)
     amount = models.IntegerField()
     paid_time = models.DateTimeField(null=True, blank=True)
     is_paid = models.BooleanField(default=False)
@@ -23,8 +23,8 @@ class Transitions(models.Model):
                 name='amount_positive'
             )
         ]
-        verbose_name_plural = "Transitions"
-        verbose_name = "Transition"
+        verbose_name_plural = "Transactions"
+        verbose_name = "Transaction"
 
     def mark_as_paid(self):
         self.is_paid = True

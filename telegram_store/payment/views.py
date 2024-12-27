@@ -7,14 +7,14 @@ from django.urls import reverse
 from django.http import Http404
 from django.views import View
 
-from .models import Transitions
+from .models import Transactions
 from asgiref.sync import sync_to_async
 
 
 # Todo: much more to do here:
 # need to check all variable to be correct
 # success page that link to telegram bot
-# need a transitions db that prevent repetitive charge_account
+# need a transactions db that prevent repetitive charge_account
 
 
 class PaymentView(View):
@@ -25,7 +25,7 @@ class PaymentView(View):
             chat_id = request.GET.get('chat_id')
             amount = int(request.GET.get('amount'))
             bot_link = request.GET.get('bot_link')
-            transition_code = request.GET.get('transition')
+            transaction_code = request.GET.get('transaction')
         except (ValueError, TypeError):
             raise Http404
 
@@ -36,22 +36,22 @@ class PaymentView(View):
             'chat_id': chat_id,
             'amount': amount,
             'bot_link': bot_link,
-            'transitions_code': transition_code,
+            'transaction_code': transaction_code,
             'action': reverse('payment_confirmation'),  # URL for POST request
         }
 
-        # check if transition not repetitive
-        transition: Transitions = await sync_to_async(
-            Transitions.objects.filter(user_id=user_id, transitions_code__exact=transition_code,
-                                       is_delete=False).first)()
+        # check if transaction not repetitive
+        transaction: Transactions = await sync_to_async(
+            Transactions.objects.filter(user_id=user_id, transaction_code__exact=transaction_code,
+                                        is_delete=False).first)()
 
-        if not transition or transition.is_paid or transition.is_expired():
+        if not transaction or transaction.is_paid or transaction.is_expired():
             return redirect(f"{reverse('payment_status')}?bot_link={bot_link}&status=failed")
 
         return render(request, 'payment/confirm.html', context)  # redirect to payment page
 
     async def post(self, request):
-        # Todo: here we check transitions_code to not be paid and repetitive
+        # Todo: here we check transaction_code to not be paid and repetitive
         bot_link = ""
         status = "failed"
         # Handles charging the account
@@ -60,10 +60,10 @@ class PaymentView(View):
             chat_id = request.POST.get('chat_id')
             amount = int(request.POST.get('amount'))
             bot_link = request.POST.get('bot_link')
-            transitions_code = request.POST.get('transition')
+            transaction_code = request.POST.get('transaction')
 
             # Call async function to charge the account
-            res: bool = await charge_account(user_id, chat_id, amount, int(transitions_code))
+            res: bool = await charge_account(user_id, chat_id, amount, int(transaction_code))
             if res:
                 status = "success"
 

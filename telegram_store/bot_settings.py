@@ -5,7 +5,7 @@ products_in_row = 1
 valid_link_in_seconds = 3600
 
 # region Text messages
-payment_url = "http://127.0.0.1:8000/payment/confirm/?chat_id={}&user_id={}&amount={}&bot_link={}&transition={}"
+payment_url = "http://127.0.0.1:8000/payment/confirm/?chat_id={}&user_id={}&amount={}&bot_link={}&transaction={}"
 bot_link = "https://t.me/gameStorePersiaBot"
 
 textError = "Something went wrong."
@@ -16,9 +16,9 @@ textBalance = "Your current balance is {} {}."  # amount, price unit
 textAmount = "Please enter the amount:"
 textInvalidAmount = "Invalid input. Please enter a valid number:"
 textChargeAccount = "Your account has been successfully charged {} {}."  # amount, price unit
-textPaymentLink = f"Your payment link is ready and it's valid for {valid_link_in_seconds} hour."
-textNoTransition = "No transition were founded"
-textTransitions = "Here is your last 5 transitions:\n\n"
+textPaymentLink = f"Your payment link is ready and it's valid for {valid_link_in_seconds // 3600} hour."
+textNoTransaction = "No transactions were founded"
+textTransaction = "Here is your last 5 transactions:\n\n"
 textAccountMenu = "Hello, {}! How can I assist you today?"  # username
 textAccInfo = "Username: {}\nFull name: {}\nBalance: {} {}"  # username, first name + last name, balance
 textNotUser = "User not founded"
@@ -43,7 +43,7 @@ buttonBalance = "My Balance"
 buttonCategories = "Product Categories"
 buttonDeposit = "Deposit"
 buttonAccountInfo = "Account Info"
-buttonTransitionList = "Transitions List"
+buttonTransactionsList = "Transactions List"
 buttonBackMainMenu = "Main Menu"
 buttonBack = "Back"
 
@@ -65,7 +65,7 @@ back_menu_markup = InlineKeyboardMarkup(back_menu_key)
 
 account_keys = [
     [InlineKeyboardButton(buttonAccountInfo, callback_data="acc_info"),
-     InlineKeyboardButton(buttonTransitionList, callback_data="trans_list")],
+     InlineKeyboardButton(buttonTransactionsList, callback_data="trans_list")],
     [main_menu_button]
 ]
 account_keys_markup = InlineKeyboardMarkup(account_keys)
