@@ -22,7 +22,7 @@ This bot is a Python-based Telegram bot integrated with a Django backend for dat
 ### Django Backend
 - **Database Models**:
   - `UserData`: Manages user account information.
-  - `Transitions`: Tracks payment transactions.
+  - `Transaction`: Tracks payment transactions.
 - **Payment Processing**:
   - Creates dynamic payment links.
   - Updates database after payment confirmation.
@@ -107,7 +107,7 @@ This bot is a Python-based Telegram bot integrated with a Django backend for dat
 ---
 
 #### Payment Link Workflow
-- Link Format: `http://127.0.0.1:8000/payment/confirm/?chat_id={chat_id}&user_id={user_id}&amount={amount}&bot_link={bot_link}&transition={transition}`.
+- Link Format: `http://127.0.0.1:8000/payment/confirm/?chat_id={chat_id}&user_id={user_id}&amount={amount}&bot_link={bot_link}&transaction={transaction}`.
 - Redirects to a Django view for payment processing.
 
 ---
