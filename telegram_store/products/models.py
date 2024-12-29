@@ -16,6 +16,7 @@ class Category(models.Model):
         return self.name
 
 
+# Todo: add price here not in each product detail
 class Product(models.Model):
     category = models.ForeignKey(to=Category, on_delete=models.SET_NULL, null=True, verbose_name="Category")
     name = models.CharField(max_length=32, verbose_name="Product Name")
