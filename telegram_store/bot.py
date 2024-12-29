@@ -65,6 +65,8 @@ ENTER_AMOUNT = 1
 
 token = config("TOKEN")
 
+bot_username = ""
+
 
 # endregion
 
@@ -141,9 +143,9 @@ async def user_balance_from_call_back(update: Update, query: CallbackQuery) -> N
 # endregion
 
 
+# Todo: function that return purchased products
 # region Manage account
 
-# Todo: function that return purchased products
 async def account_menu_call_back(query: CallbackQuery):
     try:
         await query.edit_message_text(
@@ -188,7 +190,7 @@ async def account_transactions(query: CallbackQuery) -> None:
 
         result_data = textTransaction
         for t in user_transaction:
-            result_data += f"Amount: {t.amount} {textPriceUnit}\nDate: {t.paid_time}\n\n"
+            result_data += textTransactionDetail.format(t.amount, textPriceUnit, t.paid_time)
 
         await query.edit_message_text(text=result_data, reply_markup=back_to_acc_markup)
 
@@ -238,7 +240,7 @@ async def charge_account(user_id: str, chat_id: str, amount: int, transaction_co
     await sync_to_async(current_user.save)()
     await sync_to_async(transaction.mark_as_paid)()
 
-    # Todo: retry needed
+    # Todo: retry method for this section: On success, the sent message is returned.
     # send status to user
     bot = await sync_to_async(Bot)(token=token)
     await bot.send_message(chat_id=chat_id,
@@ -262,7 +264,7 @@ async def deposit_money(update: Update, context: CallbackContext):
 # Deposit money from CallbackQuery
 async def deposit_money_from_callback(update: Update, context: CallbackContext):
     query: CallbackQuery = update.callback_query
-    if query.data != "deposit":
+    if query.data != deposit_cb:
         return ConversationHandler.END
     await query.edit_message_text(text=textAmount, reply_markup=back_menu_markup)
 
@@ -270,8 +272,10 @@ async def deposit_money_from_callback(update: Update, context: CallbackContext):
 
 
 async def capture_amount(update: Update, context: CallbackContext):
+    global bot_username
     # await context.bot.delete_message(update.effective_chat.id, update.effective_message.id - 1)
     user_input = update.message.text
+    await update.message.delete()
     try:
         amount = int(user_input)
         '''
@@ -291,8 +295,13 @@ async def capture_amount(update: Update, context: CallbackContext):
         transaction.transaction_code = transaction.id + 1_000_000
         await sync_to_async(transaction.save)()
 
+        if not bot_username:
+            bot_username = context.bot.username
+        print(bot_username)
+
         pay_key = [[InlineKeyboardButton(text=textPayButton, url=payment_url.format(chat_id,
-                                                                                    user_id, amount, bot_link,
+                                                                                    user_id, amount,
+                                                                                    bot_link.format(bot_username),
                                                                                     transaction.transaction_code))]]
 
         pay_key_markup = InlineKeyboardMarkup(pay_key)
@@ -307,8 +316,6 @@ async def capture_amount(update: Update, context: CallbackContext):
         return ENTER_AMOUNT
     except Exception as e:
         logger.error(f"Error in capture_amount function: {e}")
-    finally:
-        await update.message.delete()
 
 
 async def cancel_back_to_menu(update: Update, context: CallbackContext):
@@ -330,19 +337,23 @@ async def product_categories(query: CallbackQuery):
     if not categories:
         await query.edit_message_text(text=textNotFound, reply_markup=back_menu_markup)
         return  # Ensure the function exits here if no categories are found
+    try:
+        # Create buttons for categories
+        temp_keys = [
+            [InlineKeyboardButton(cat.name, callback_data=f"{select_category_cb}_{cat.id}") for cat in
+             categories[i:i + categories_in_row]]
+            for i in range(0, len(categories), categories_in_row)
+        ]
+        temp_keys.append(back_menu_key[0])  # Add back button
+        temp_reply_markup = InlineKeyboardMarkup(temp_keys)
 
-    # Create buttons for categories
-    temp_keys = [
-        [InlineKeyboardButton(cat.name, callback_data=f"category_{cat.id}") for cat in
-         categories[i:i + categories_in_row]]
-        for i in range(0, len(categories), categories_in_row)
-    ]
-    temp_keys.append(back_menu_key[0])  # Add back button
-    temp_reply_markup = InlineKeyboardMarkup(temp_keys)
-
-    await query.edit_message_text(text=textProductCategories, reply_markup=temp_reply_markup)
+        await query.edit_message_text(text=textProductCategories, reply_markup=temp_reply_markup)
+    except Exception as e:
+        # await query.edit_message_text(textError, reply_markup=back_menu_markup)
+        logger.error(f"Error in payment function: {e}")
 
 
+# Todo: Show available product only
 async def products(query: CallbackQuery):
     try:
         # Extract category ID from callback data
@@ -358,23 +369,27 @@ async def products(query: CallbackQuery):
         await query.edit_message_text(text=textNoProductFound, reply_markup=back_to_cats_markup)
         return
 
-    # Create buttons for products
-    temp_keys = [
-        [InlineKeyboardButton(prod.name, callback_data=f"product_{prod.id}") for prod in all_products[i:i + products_in_row]]
-        for i in range(0, len(all_products), products_in_row)
-    ]
-    temp_keys.append(back_menu_key[0])  # Add back button
-    temp_keys.append([InlineKeyboardButton(textBackButton, callback_data='categories')])
-    temp_reply_markup = InlineKeyboardMarkup(temp_keys)
+    try:
+        # Create buttons for products
+        temp_keys = [
+            [InlineKeyboardButton(prod.name, callback_data=f"{select_product_cb}_{prod.id}") for prod in
+             all_products[i:i + products_in_row]]
+            for i in range(0, len(all_products), products_in_row)
+        ]
+        temp_keys.append(back_menu_key[0])  # Add back button
+        temp_keys.append([InlineKeyboardButton(textBackButton, callback_data=categories_cb)])
+        temp_reply_markup = InlineKeyboardMarkup(temp_keys)
 
-    # Get category name
-    current_cat: Category = await sync_to_async(Category.objects.filter(id=cat_id, is_delete=False).first)()
-    cat_name = "The"
-    if current_cat:
-        cat_name = current_cat.name
-    # print(cat_name)
+        # Get category name
+        current_cat: Category = await sync_to_async(Category.objects.filter(id=cat_id, is_delete=False).first)()
+        cat_name = ""
+        if current_cat:
+            cat_name = current_cat.name + " "
 
-    await query.edit_message_text(text=textProductList.format(cat_name), reply_markup=temp_reply_markup)
+        await query.edit_message_text(text=textProductList.format(cat_name), reply_markup=temp_reply_markup)
+    except Exception as e:
+        # await query.edit_message_text(textError, reply_markup=back_menu_markup)
+        logger.error(f"Error in payment function: {e}")
 
 
 async def product_payment_detail(query: CallbackQuery):
@@ -396,18 +411,24 @@ async def product_payment_detail(query: CallbackQuery):
         await query.answer(textProductSoldOut, show_alert=True)
         return
 
-    # Create inline keyboard buttons
-    temp_keys = [
-        [InlineKeyboardButton('Pay', callback_data=f'payment_{product_detail.price}_{product_detail.product.id}')],
-        [InlineKeyboardButton('Back', callback_data=f'category_{product_detail.product.category.id}')],
-    ]
-    temp_reply_markup = InlineKeyboardMarkup(temp_keys)
+    try:
+        # Create inline keyboard buttons
+        temp_keys = [
+            [InlineKeyboardButton(textPayButton,
+                                  callback_data=f'{payment_cb}_{product_detail.price}_{product_detail.product.id}')],
+            [InlineKeyboardButton(textBackButton,
+                                  callback_data=f'{select_category_cb}_{product_detail.product.category.id}')],
+        ]
+        temp_reply_markup = InlineKeyboardMarkup(temp_keys)
 
-    # Edit message to show product details
-    await query.edit_message_text(
-        text=textPurchaseBill.format(product_detail.product.name, product_detail.price, textPriceUnit),
-        reply_markup=temp_reply_markup
-    )
+        # Edit message to show product details
+        await query.edit_message_text(
+            text=textPurchaseBill.format(product_detail.product.name, product_detail.price, textPriceUnit),
+            reply_markup=temp_reply_markup
+        )
+    except Exception as e:
+        # await query.edit_message_text(textError, reply_markup=back_menu_markup)
+        logger.error(f"Error in product_payment_detail function: {e}")
 
 
 async def payment(update: Update, context: CallbackContext, query: CallbackQuery):
@@ -435,17 +456,22 @@ async def payment(update: Update, context: CallbackContext, query: CallbackQuery
         await query.answer(text=textProductSoldOut, show_alert=True)
         return
 
-    current_user.balance -= payment_amount
-    product.is_purchased = True
-    product.buyer = current_user
-    product.purchase_date = timezone.now()
+    try:
+        current_user.balance -= payment_amount
+        product.is_purchased = True
+        product.buyer = current_user
+        product.purchase_date = timezone.now()
 
-    await sync_to_async(product.save)()
-    await sync_to_async(current_user.save)()
+        await sync_to_async(product.save)()  # first update product detail
+        await sync_to_async(current_user.save)()  # then update balance
 
-    await context.bot.send_message(text=textProductDetail.format(product.details),
-                                   chat_id=update.effective_chat.id)
-    # await query.delete_message()
+        # Todo: retry method for this section: On success, the sent message is returned.
+        await context.bot.send_message(text=textProductDetail.format(product.details),
+                                       chat_id=update.effective_chat.id)
+        # await query.delete_message()
+    except Exception as e:
+        await update.message.reply_text(textError, reply_markup=back_menu_markup)
+        logger.error(f"Error in payment function: {e}")
 
 
 # endregion
@@ -455,24 +481,24 @@ async def payment(update: Update, context: CallbackContext, query: CallbackQuery
 async def callback_query_handler(update: Update, context: CallbackContext) -> None:
     query: CallbackQuery = update.callback_query
     query_data = query.data
-    # Todo: convert it to switch case
-    if query_data == "main_menu":  # Main Menu
+
+    if query_data == main_menu_cb:  # Main Menu
         await menu_from_callback(query)
-    elif query_data == "bala":  # User Balance
+    elif query_data == balance_cb:  # User Balance
         await user_balance_from_call_back(update, query)
-    elif query_data == "acc":  # Account Menu
+    elif query_data == account_menu_cb:  # Account Menu
         await account_menu_call_back(query)
-    elif query_data == "trans_list":  # User Transactions
+    elif query_data == transactions_cb:  # User Transactions
         await account_transactions(query)
-    elif query_data == "acc_info":  # User Account Info
+    elif query_data == account_info_cb:  # User Account Info
         await account_info(query)
-    elif query_data == "categories":
+    elif query_data == categories_cb:  # Product Categories
         await product_categories(query)
-    elif query_data.startswith('category_'):  # selected category
+    elif query_data.startswith(f"{select_category_cb}_"):  # Selected category
         await products(query)
-    elif query_data.startswith('product_'):  # selected category
+    elif query_data.startswith(f"{select_product_cb}_"):  # Selected product
         await product_payment_detail(query)
-    elif query_data.startswith('payment_'):  # selected category
+    elif query_data.startswith(f"{payment_cb}_"):  # Payment processing
         await payment(update, context, query)
 
     await query.answer()  # Stop button animation
@@ -510,14 +536,14 @@ def main() -> None:
         ConversationHandler(
             entry_points=[
                 CommandHandler("deposit", deposit_money),
-                CallbackQueryHandler(deposit_money_from_callback, pattern="^deposit$"),
+                CallbackQueryHandler(deposit_money_from_callback, pattern=f"^{deposit_cb}$"),
             ],
             states={
                 ENTER_AMOUNT: [MessageHandler(filters.TEXT & ~filters.COMMAND, capture_amount)],
             },
             fallbacks=[
                 CommandHandler("cancel", cancel_back_to_menu),
-                CallbackQueryHandler(cancel_back_to_menu, pattern="^main_menu$"),  # For callback button
+                CallbackQueryHandler(cancel_back_to_menu, pattern=f"^{main_menu_cb}$"),  # For callback button
             ],
         ),
         MessageHandler(filters.TEXT, delete_message),  # Performance issue
