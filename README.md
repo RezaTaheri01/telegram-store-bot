@@ -1,60 +1,69 @@
 
-# Telegram Bot with Django Integration
+# Telegram Bot with Django Integration 📢💻
 
-This bot is a Python-based Telegram bot integrated with a Django backend for database management, payment handling, digital product selling, and dynamic interaction features.
+This bot is a Python-based Telegram bot seamlessly integrated with a Django backend. It supports database management, payment handling, digital product selling, and dynamic user interactions.
 
 ---
 
-## Features
+## Features 🏢
 
-### Telegram Bot
-- **Multi language**:
-  - Currently support two languages but it's easy to expand more.
-  - You can change language in main menu 
+### Telegram Bot 📲
+
+- **Multi-language Support**:
+  - Currently supports two languages, with the ability to add more.
+  - Users can change the language via the main menu.
+
 - **User Account Management**:
-  - Automatically creates a user account if it doesn't exist.
-  - Retrieves and displays user balance.
-  - Show user transactions.
-- **Interactive Menu**:
-  - Main menu with options like **My Account**, **My Balance**, **Deposit**, and **Product Categories**.
-  - Inline keyboards for seamless navigation.
-- **Payment Handling**:
-  - Generates unique payment links.
-  - Processes payments via Django backend.
-  - Updates user balance upon successful payment.
-- **Product Management**:
-  - Displays categories and products dynamically.
-  - Supports product purchase via balance deduction.
-- **Customization**:
-  - In bot_settings.py you can customize:
-    - Count of Category, Product in row
-    - All texts
-    - Your own first and second language
-    - Inline Button's text and callback_data
-    - Payment link time limit
+  - Automatically creates user accounts if they don’t exist.
+  - Retrieves and displays user balance. 💳
+  - Displays user transaction history. 🔄
 
-### Django Backend
+- **Interactive Menu**:
+  - Provides options like **My Account**, **My Balance**, **Deposit**, and **Product Categories**.
+  - Includes inline keyboards for seamless navigation. 📝
+
+- **Payment Handling**:
+  - Generates unique payment links. 📡
+  - Processes payments via the Django backend.
+  - Updates user balance upon successful payment. ✔️
+
+- **Product Management**:
+  - Dynamically displays categories and products. 🛒
+  - Supports product purchases via balance deduction. 💸
+
+- **Customization**:
+  - In `bot_settings.py`, you can customize:
+    - Number of categories and products displayed per row.
+    - All text messages. 🖊️
+    - Primary and secondary languages.
+    - Inline button text and callback data.
+    - Payment link time limits. ⏳
+
+### Django Backend 📚
+
 - **Database Models**:
-  - `UserData`: Manages user account information.
-    - In UserData the default language set to en and if your primary language is not english change it and also change bot_setting.py
-  - `Transaction`: Tracks payment transactions.
-  - `Category`, `Product`, `ProductDetail`: Manages products and their details.
+  - `UserData`: Manages user account information. By default, the language is set to English (`en`). If your primary language isn’t English, update this in `bot_settings.py` and the database model.
+  - `Transaction`: Tracks payment transactions. 📋
+  - `Category`, `Product`, `ProductDetail`: Manages products and their details. 🛠️
+  - `ProductDetail`: The field detail that contain product info is encrypted 🔒 by ([django-encrypted-json-fields](https://pypi.org/project/django-encrypted-json-fields/))
+
 - **Payment Processing**:
-  - Creates dynamic payment links.
-  - Updates database after payment confirmation.
+  - Dynamically creates payment links. 🔗
+  - Updates the database after payment confirmation.
 
 ---
 
-## Installation
+## Installation ⚙️
 
-### Prerequisites
-1. Python 3.8 or higher
-2. Django (latest version recommended)
-3. PostgreSQL or another preferred database system configured in Django [more info](https://docs.djangoproject.com/en/5.1/ref/databases/)
-4. Libraries: `python-telegram-bot`, `asgiref`, `python-decouple`, etc.
+### Prerequisites 🔎
+
+1. Python 3.8 or higher 💾
+2. Django (latest version recommended) ⬆️
+3. PostgreSQL or any preferred database system configured in Django ([Learn More](https://docs.djangoproject.com/en/5.1/ref/databases/))
+4. Required libraries: `python-telegram-bot`, `asgiref`, `python-decouple`, etc.
 5. Dependencies are listed in `req.txt`
 
-### Setup Instructions
+### Setup Instructions 🔧
 
 1. **Clone the Repository**:
    ```bash
@@ -62,7 +71,7 @@ This bot is a Python-based Telegram bot integrated with a Django backend for dat
    cd telegram-store-bot/telegram_store
    ```
 
-2. **Install Dependencies**:
+2. **Install Dependencies**([virtual environment](https://realpython.com/python-virtual-environments-a-primer/#create-it) recommended):
    ```bash
    pip install -r req.txt
    ```
@@ -73,9 +82,9 @@ This bot is a Python-based Telegram bot integrated with a Django backend for dat
 
 4. **Set Up Environment Variables**:
    - Create a `.env` file in the root directory with the following structure:
-   ```env
-   TOKEN=<your-telegram-bot-token>
-   ```
+     ```env
+     TOKEN=<your-telegram-bot-token>
+     ```
 
 5. **Migrate the Database**:
    ```bash
@@ -95,76 +104,87 @@ This bot is a Python-based Telegram bot integrated with a Django backend for dat
 
 ---
 
-## Code Overview
+## Code Overview 🛠️
 
-### Telegram Bot
+### Telegram Bot 📲
 
 #### Key Features
+
 - **Imports**:
-  - `Django`: Sets up Django environment for database operations.
+  - `Django`: Sets up the Django environment for database operations.
   - `telegram.ext`: Facilitates bot creation and updates handling.
+
 - **Global Variables**:
   - `main_menu_keys`: Defines the main menu layout.
-  - `textStart`, `textBalance`, etc.: Predefined messages for user and interactions.
+  - `textStart`, `textBalance`, etc.: Predefined messages for user interactions.
+
 - **Core Functions**:
-  - `start_menu`: Displays the main menu.
-  - `change_language`: Change language and update UserData language.
-  - `check_create_account`: Automatically creates user accounts if they don't exist.
-  - `user_balance`: Fetches and displays user balance.
-  - `deposit_money`: Initiates the deposit process and generates payment links.
-  - `charge_account`: Updates user balance upon successful payment.
-  - `get_name`: Fetch name base on user language
-  - `product_categories`: Displays product categories dynamically.
-  - `products`: Lists products under a category.
-  - `product_payment_detail`: Displays payment details for a product.
-  - `payment`: Handles product purchase and balance deduction.
-  - `get_user_language`: First it try to get user language from language_cache then query database.
-    
+  - `start_menu`: Displays the main menu. 🌐
+  - `change_language`: Allows users to change their language and updates the `UserData` language field. 🌎
+  - `check_create_account`: Automatically creates user accounts if they don’t exist. 🔧
+  - `user_balance`: Fetches and displays the user’s balance. 💳
+  - `deposit_money`: Initiates the deposit process and generates payment links. 💵
+  - `charge_account`: Updates the user’s balance upon successful payment. ✔️
+  - `get_name`: Retrieves names based on user language. 🌐
+  - `product_categories`: Dynamically displays product categories. 🛒
+  - `products`: Lists products under a selected category. 🍾
+  - `product_payment_detail`: Displays payment details for a product. 💸
+  - `payment`: Handles product purchases and balance deductions. 💰
+  - `get_user_language`: Retrieves the user’s language from a language cache or the database. 🌐
 
 #### Conversation States
-- `ENTER_AMOUNT`: Captures the deposit amount entered by the user.
 
-#### Error Handling
+- `ENTER_AMOUNT`: Captures the deposit amount entered by the user. 💵
+
+#### Error Handling 🛠️
+
 - Logs all errors to `logs.log`.
-- Notifies users about issues without disrupting the bot experience.
+- Notifies users of issues without disrupting the bot experience. ⚠️
 
 ---
 
-#### Payment Link Workflow
-- Link Format: `http://127.0.0.1:8000/payment/confirm/?chat_id={chat_id}&user_id={user_id}&amount={amount}&bot_link={bot_link}&transaction={transaction}`.
-- Redirects to a Django view for payment processing.
+### Payment Link Workflow 🔗
+
+- **Link Format**:
+  ```
+  http://127.0.0.1:8000/payment/confirm/?chat_id={chat_id}&user_id={user_id}&amount={amount}&bot_link={bot_link}&transaction={transaction}
+  ```
+- Redirects users to a Django view for payment processing.
 
 ---
 
-## Usage
+## Usage 🚀
 
 1. **Start the Bot**:
-   - Send `/start` to the bot.
+   - Send `/start` to the bot. 📢
    - Explore options like **My Account**, **My Balance**, **Deposit**, or **Product Categories**.
 
 2. **Deposit Money**:
-   - Select the **Deposit** option from the menu.
+   - Select the **Deposit** option from the menu. 💵
    - Enter the desired amount.
-   - Click the payment link to complete the transaction.
-   - Verify the updated balance in your account.
+   - Click the payment link to complete the transaction. ✔️
+   - Verify the updated balance in your account. 💳
 
 3. **Browse Products**:
-   - Select **Product Categories** from the menu.
-   - Choose a category and view the available products.
-   - Purchase a product using your balance.
+   - Select **Product Categories** from the menu. 🛒
+   - Choose a category and view available products. 🍾
+   - Purchase a product using your balance. 💰
 
 ---
 
-## Logs
-- All errors are logged in `logs.log` with detailed messages.
+## Logs 🔍
+
+- All errors are logged in `logs.log` with detailed messages. 📄
 
 ---
 
-## Notes
-- Ensure the Django server is running for smooth payment processing.
-- Update the `payment_url` in the bot code to match your server’s address when deploying.
+## Notes 📊
+
+- Ensure the Django server is running for smooth payment processing. ⚙️
+- Update the `payment_url` in the bot code to match your server’s address when deploying. 🔗
 
 ---
 
-## License
-This project is licensed under the MIT License. See the [`LICENSE`](https://github.com/RezaTaheri01/telegram-store-bot/blob/main/LICENSE) file for more details.
+## License 🔒
+
+This project is licensed under the MIT License. See the [`LICENSE`](https://github.com/RezaTaheri01/telegram-store-bot/blob/main/LICENSE) file for more details. 🔖
