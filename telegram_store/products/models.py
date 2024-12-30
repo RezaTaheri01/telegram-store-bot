@@ -7,6 +7,9 @@ from encrypted_json_fields.fields import EncryptedCharField
 # Create your models here.
 class Category(models.Model):
     name = models.CharField(max_length=32, verbose_name="Category Name")
+    name_second = models.CharField(max_length=32, verbose_name="Category Name Second Language")
+    # add more name field for more language also in product model
+    # the name should be the same as Product
     is_delete = models.BooleanField(default=False, blank=True)
 
     class Meta:
@@ -17,10 +20,14 @@ class Category(models.Model):
         return self.name
 
 
-# Todo: add price here not in each product detail
+# Todo: add price here not in each product detail Done
 class Product(models.Model):
     category = models.ForeignKey(to=Category, on_delete=models.SET_NULL, null=True, verbose_name="Category")
     name = models.CharField(max_length=32, verbose_name="Product Name")
+    name_second = models.CharField(max_length=32, verbose_name="Product Name Second Language")
+    # add more name field for more language also in category model
+    # the name should be the same as Product
+    price = models.IntegerField(verbose_name="Product Price")
     is_delete = models.BooleanField(default=False, blank=True)
 
     class Meta:
@@ -35,7 +42,6 @@ class ProductDetail(models.Model):
     product = models.ForeignKey(to=Product, on_delete=models.SET_NULL, null=True, verbose_name="Product")
     # Todo: save details encrypted Done
     details = EncryptedCharField(max_length=256, verbose_name="Details")  # for example: user passwd
-    price = models.IntegerField(verbose_name="Product Price")
     is_purchased = models.BooleanField(default=False, verbose_name="Is Purchased")
     purchase_date = models.DateTimeField(null=True, blank=True, verbose_name="Purchased  Date")
     buyer = models.ForeignKey(to=UserData, on_delete=models.SET_NULL, null=True, verbose_name="Buyer")
