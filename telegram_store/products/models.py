@@ -3,6 +3,7 @@ from users.models import UserData
 from encrypted_json_fields.fields import EncryptedCharField
 
 
+# Todo: multilanguage name fields
 # Create your models here.
 class Category(models.Model):
     name = models.CharField(max_length=32, verbose_name="Category Name")
