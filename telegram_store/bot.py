@@ -3,7 +3,7 @@
 if __name__ == "__main__":
     from bot_settings import *
 else:
-    from bot_settings import texts
+    from bot_settings import texts, lang
 # endregion
 
 
@@ -295,7 +295,6 @@ async def capture_amount(update: Update, context: CallbackContext):
     user_id = update.effective_user.id
     usr_lng = await user_language(user_id)
 
-    await update.message.delete()
     try:
         amount = int(user_input)
         '''
@@ -316,7 +315,7 @@ async def capture_amount(update: Update, context: CallbackContext):
 
         if not bot_username:
             bot_username = context.bot.username
-        print(bot_username)
+        # print(bot_username)
 
         pay_key = [[InlineKeyboardButton(text=texts[usr_lng]["textPayButton"], url=payment_url.format(chat_id,
                                                                                                       user_id, amount,
@@ -336,6 +335,8 @@ async def capture_amount(update: Update, context: CallbackContext):
         return ENTER_AMOUNT
     except Exception as e:
         logger.error(f"Error in capture_amount function: {e}")
+    finally:
+        await update.message.delete()
 
 
 async def cancel_back_to_menu(update: Update, context: CallbackContext):
