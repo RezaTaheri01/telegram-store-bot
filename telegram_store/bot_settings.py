@@ -3,14 +3,16 @@ from telegram import InlineKeyboardButton, InlineKeyboardMarkup
 categories_in_row = 1
 products_in_row = 1
 valid_link_in_seconds = 3600
-lang = "fa"  # default languages
+lang1, lang2 = "en", "fa"
+# aging_limit = 1  # days
+
 # Todo: improve payment url and fetch bot link automatically
 payment_url = "http://127.0.0.1:8000/payment/confirm/?chat_id={}&user_id={}&amount={}&bot_link={}&transaction={}"
 bot_link = "https://t.me/{}"  # bot username
 
 # region Multi language texts
 texts = {
-    "en": {
+    lang1: {
         "textError": "Something went wrong.",
         "textStart": "Hello, {}!\nWelcome to Persia shop",  # username
         "textMenu": "Choose from below:",
@@ -48,8 +50,9 @@ texts = {
         "buttonTransactionsList": "Transactions List",
         "buttonBackMainMenu": "Main Menu",
         "buttonBack": "Back",
+        "buttonLanguage": lang2,  # don't change this
     },
-    "fa": {
+    lang2: {
         "textError": "مشکلی پیش آمده است.",
         "textStart": "سلام، {}!\nبه فروشگاه پرشیا خوش آمدید",  # username
         "textMenu": "از گزینه‌های زیر انتخاب کنید:",
@@ -81,12 +84,13 @@ texts = {
         # Button texts
         "buttonAccount": "منوی اکانت",
         "buttonBalance": "موجودی",
-        "buttonCategories": "دسنه بندی محصولات",
+        "buttonCategories": "دسته بندی محصولات",
         "buttonDeposit": "افزایش موجودی",
         "buttonAccountInfo": "جزِئیات اکانت",
         "buttonTransactionsList": "لیست تراکنش ها",
         "buttonBackMainMenu": "منوی اصلی",
         "buttonBack": "بازگشت",
+        "buttonLanguage": lang1,  # don't change this
     }
 }
 # endregion
@@ -100,6 +104,7 @@ balance_cb = "3"
 categories_cb = "4"
 deposit_cb = "5"
 transactions_cb = "6"
+change_lang_cb = "7"
 select_category_cb = "cat"
 select_product_cb = "pro"
 payment_cb = "pay"
@@ -114,6 +119,8 @@ for key, value in texts.items():
         [account_menu_button,
          InlineKeyboardButton(texts[key]["buttonBalance"], callback_data=balance_cb)],
         [InlineKeyboardButton(texts[key]["buttonCategories"], callback_data=categories_cb)],
+        [InlineKeyboardButton(texts[key]["buttonLanguage"
+                                         ""], callback_data=change_lang_cb)],
         [InlineKeyboardButton(texts[key]["buttonDeposit"], callback_data=deposit_cb)],
     ]
     buttons[key]["main_menu_markup"] = InlineKeyboardMarkup(main_menu_keys)
