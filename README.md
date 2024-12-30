@@ -8,11 +8,12 @@ This bot is a Python-based Telegram bot integrated with a Django backend for dat
 ## Features
 
 ### Telegram Bot
+- **Multi language**:
+  - Currently support two languages but it's easy to expand more. 
 - **User Account Management**:
   - Automatically creates a user account if it doesn't exist.
   - Retrieves and displays user balance.
   - Show user transactions.
-  - Show user purchase. Todo
 - **Interactive Menu**:
   - Main menu with options like **My Account**, **My Balance**, **Deposit**, and **Product Categories**.
   - Inline keyboards for seamless navigation.
@@ -23,6 +24,13 @@ This bot is a Python-based Telegram bot integrated with a Django backend for dat
 - **Product Management**:
   - Displays categories and products dynamically.
   - Supports product purchase via balance deduction.
+- **Customization**:
+  - In bot_settings.py you can customize:
+    - Count of Category, Product in row
+    - All texts
+    - Your own first and second language
+    - Inline Button's text and callback_data
+    - Payment link time limit
 
 ### Django Backend
 - **Database Models**:
@@ -95,17 +103,21 @@ This bot is a Python-based Telegram bot integrated with a Django backend for dat
   - `telegram.ext`: Facilitates bot creation and updates handling.
 - **Global Variables**:
   - `main_menu_keys`: Defines the main menu layout.
-  - `textStart`, `textBalance`, etc.: Predefined messages for user interactions.
+  - `textStart`, `textBalance`, etc.: Predefined messages for user and interactions.
 - **Core Functions**:
   - `start_menu`: Displays the main menu.
+  - `change_language`: Change language and update UserData language.
   - `check_create_account`: Automatically creates user accounts if they don't exist.
   - `user_balance`: Fetches and displays user balance.
   - `deposit_money`: Initiates the deposit process and generates payment links.
   - `charge_account`: Updates user balance upon successful payment.
+  - `get_name`: Fetch name base on user language
   - `product_categories`: Displays product categories dynamically.
   - `products`: Lists products under a category.
   - `product_payment_detail`: Displays payment details for a product.
   - `payment`: Handles product purchase and balance deduction.
+  - `get_user_language`: First it try to get user language from language_cache then query database.
+    
 
 #### Conversation States
 - `ENTER_AMOUNT`: Captures the deposit amount entered by the user.
