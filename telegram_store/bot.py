@@ -1,9 +1,11 @@
+# import sys
+
 # region bot settings
 # Todo: manage import when call charge account
 if __name__ == "__main__":
     from bot_settings import *
 else:
-    from bot_settings import texts, lang
+    from bot_settings import texts, lang1, lang2
 # endregion
 
 
@@ -65,6 +67,9 @@ ENTER_AMOUNT = 1
 token = config("TOKEN")
 
 bot_username = ""
+
+# Todo: implement aging for better memory usage
+language_cache: dict = {}
 
 
 # endregion
@@ -232,6 +237,21 @@ async def check_create_account(update: Update) -> None:
         except Exception as e:
             await update.message.reply_text(texts[usr_lng]["textError"])
             logger.error(f"Error in check_create_account function: {e}")
+
+
+async def change_user_language(query: CallbackQuery):
+    user = await sync_to_async(UserData.objects.filter(id=query.from_user.id).first)()
+
+    if user.language == lang1:
+        user.language = lang2
+    else:
+        user.language = lang1
+
+    await sync_to_async(user.save)()
+    language_cache[user.id] = (user.language, timezone.now().date())
+
+    await query.edit_message_text(text=texts[user.language]["textMenu"],
+                                  reply_markup=buttons[user.language]['main_menu_markup'])
 
 
 # Call this after successful payment
@@ -528,6 +548,8 @@ async def callback_query_handler(update: Update, context: CallbackContext) -> No
         await account_info(query)
     elif query_data == categories_cb:  # Product Categories
         await product_categories(query)
+    elif query_data == change_lang_cb:  # Product Categories
+        await change_user_language(query)
     elif query_data.startswith(f"{select_category_cb}_"):  # Selected category
         await products(query)
     elif query_data.startswith(f"{select_product_cb}_"):  # Selected product
@@ -560,7 +582,18 @@ async def delete_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 
 async def user_language(user_id: int):
-    return lang
+    date_now = timezone.now().date()
+    if user_id not in language_cache:
+        user = await sync_to_async(UserData.objects.filter(id=user_id).first)()
+        language_cache[user_id] = (user.language, date_now)
+        # Todo: check language_cache length and remove old ones (parallel) base on days
+        # print(language_cache)
+        # print(sys.getsizeof(language_cache))
+        return user.language
+    else:
+        # reset aging
+        # language_cache[user_id] = (language_cache[user_id][0], date_now)
+        return language_cache[user_id][0]
 
 
 # Main function
