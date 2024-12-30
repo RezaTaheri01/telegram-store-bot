@@ -9,7 +9,8 @@ This bot is a Python-based Telegram bot integrated with a Django backend for dat
 
 ### Telegram Bot
 - **Multi language**:
-  - Currently support two languages but it's easy to expand more. 
+  - Currently support two languages but it's easy to expand more.
+  - You can change language in main menu 
 - **User Account Management**:
   - Automatically creates a user account if it doesn't exist.
   - Retrieves and displays user balance.
@@ -35,6 +36,7 @@ This bot is a Python-based Telegram bot integrated with a Django backend for dat
 ### Django Backend
 - **Database Models**:
   - `UserData`: Manages user account information.
+    - In UserData the default language set to en and if your primary language is not english change it and also change bot_setting.py
   - `Transaction`: Tracks payment transactions.
   - `Category`, `Product`, `ProductDetail`: Manages products and their details.
 - **Payment Processing**:
