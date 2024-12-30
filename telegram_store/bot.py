@@ -276,9 +276,16 @@ async def charge_account(user_id: str, chat_id: str, amount: int, transaction_co
     # Todo: retry method for this section: On success, the sent message is returned.
     # send status to user
     bot = await sync_to_async(Bot)(token=token)
-    await bot.send_message(chat_id=chat_id,
-                           text=texts[usr_lng]["textChargeAccount"].format(amount, texts[usr_lng]["textPriceUnit"]),
-                           reply_markup=None)
+    result = await bot.send_message(chat_id=chat_id,
+                                    text=texts[usr_lng]["textChargeAccount"].format(amount,
+                                                                                    texts[usr_lng]["textPriceUnit"]),
+                                    reply_markup=None)
+    if not result:
+        bot = await sync_to_async(Bot)(token=token)
+        await bot.send_message(chat_id=chat_id,
+                               text=texts[usr_lng]["textChargeAccount"].format(amount, texts[usr_lng][
+                                   "textPriceUnit"]),
+                               reply_markup=None)
 
     return True
 
@@ -371,6 +378,14 @@ async def cancel_back_to_menu(update: Update, context: CallbackContext):
 
 
 # region Products
+async def get_name(user_lang: str, current_object) -> str:
+    current_name = current_object.name  # default is first language
+    if user_lang == lang2:
+        current_name = current_object.name_second
+    # add more elif state in here also add your language to bot_settings.py
+    return current_name
+
+
 async def product_categories(query: CallbackQuery):
     usr_lng = await user_language(query.from_user.id)
 
@@ -384,7 +399,8 @@ async def product_categories(query: CallbackQuery):
     try:
         # Create buttons for categories
         temp_keys = [
-            [InlineKeyboardButton(cat.name, callback_data=f"{select_category_cb}_{cat.id}") for cat in
+            [InlineKeyboardButton(await get_name(usr_lng, cat), callback_data=f"{select_category_cb}_{cat.id}") for cat
+             in
              categories[i:i + categories_in_row]]
             for i in range(0, len(categories), categories_in_row)
         ]
@@ -419,12 +435,13 @@ async def products(query: CallbackQuery):
     try:
         # Create buttons for products
         temp_keys = [
-            [InlineKeyboardButton(prod.name, callback_data=f"{select_product_cb}_{prod.id}") for prod in
+            [InlineKeyboardButton(await get_name(usr_lng, prod), callback_data=f"{select_product_cb}_{prod.id}") for
+             prod in
              all_products[i:i + products_in_row]]
             for i in range(0, len(all_products), products_in_row)
         ]
         temp_keys.append(
-            [InlineKeyboardButton(texts[key]["buttonBackMainMenu"], callback_data=main_menu_cb)])  # Add back button
+            [InlineKeyboardButton(texts[usr_lng]["buttonBackMainMenu"], callback_data=main_menu_cb)])  # Add back button
         temp_keys.append([InlineKeyboardButton(texts[usr_lng]["textBackButton"], callback_data=categories_cb)])
         temp_reply_markup = InlineKeyboardMarkup(temp_keys)
 
@@ -432,7 +449,7 @@ async def products(query: CallbackQuery):
         current_cat: Category = await sync_to_async(Category.objects.filter(id=cat_id, is_delete=False).first)()
         cat_name = ""
         if current_cat:
-            cat_name = current_cat.name + " "
+            cat_name = await get_name(usr_lng, current_cat) + " "
 
         await query.edit_message_text(text=texts[usr_lng]["textProductList"].format(cat_name),
                                       reply_markup=temp_reply_markup)
@@ -466,7 +483,7 @@ async def product_payment_detail(query: CallbackQuery):
         # Create inline keyboard buttons
         temp_keys = [
             [InlineKeyboardButton(texts[usr_lng]["textPayButton"],
-                                  callback_data=f'{payment_cb}_{product_detail.price}_{product_detail.product.id}')],
+                                  callback_data=f'{payment_cb}_{product_detail.product.price}_{product_detail.product.id}')],
             [InlineKeyboardButton(texts[usr_lng]["textBackButton"],
                                   callback_data=f'{select_category_cb}_{product_detail.product.category.id}')],
         ]
@@ -474,7 +491,8 @@ async def product_payment_detail(query: CallbackQuery):
 
         # Edit message to show product details
         await query.edit_message_text(
-            text=texts[usr_lng]["textPurchaseBill"].format(product_detail.product.name, product_detail.price,
+            text=texts[usr_lng]["textPurchaseBill"].format(await get_name(usr_lng, product_detail.product),
+                                                           product_detail.product.price,
                                                            texts[usr_lng]["textPriceUnit"]),
             reply_markup=temp_reply_markup
         )
@@ -520,8 +538,11 @@ async def payment(update: Update, context: CallbackContext, query: CallbackQuery
         await sync_to_async(current_user.save)()  # then update balance
 
         # Todo: retry method for this section: On success, the sent message is returned.
-        await context.bot.send_message(text=texts[usr_lng]["textProductDetail"].format(product.details),
-                                       chat_id=update.effective_chat.id)
+        result = await context.bot.send_message(text=texts[usr_lng]["textProductDetail"].format(product.details),
+                                                chat_id=update.effective_chat.id)
+        if not result:
+            await context.bot.send_message(text=texts[usr_lng]["textProductDetail"].format(product.details),
+                                           chat_id=update.effective_chat.id)
         # await query.delete_message()
     except Exception as e:
         await update.message.reply_text(texts[usr_lng]["textError"], reply_markup=buttons[usr_lng]["back_menu_markup"])
