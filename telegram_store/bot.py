@@ -393,12 +393,16 @@ async def product_categories(query: CallbackQuery):
         return  # Ensure the function exits here if no categories are found
     try:
         # Create buttons for categories
-        temp_keys = [
-            [InlineKeyboardButton(await get_name(usr_lng, cat), callback_data=f"{select_category_cb}_{cat.id}") for cat
-             in
-             categories[i:i + categories_in_row]]
-            for i in range(0, len(categories), categories_in_row)
-        ]
+        temp_keys = []
+        for i in range(0, len(categories), categories_in_row):
+            row = await asyncio.gather(
+                *[get_name(usr_lng, cat) for cat in categories[i:i + categories_in_row]]
+            )
+            temp_keys.append(
+                [InlineKeyboardButton(name, callback_data=f"{select_category_cb}_{cat.id}") for name, cat in
+                 zip(row, categories[i:i + categories_in_row])]
+            )
+
         temp_keys.append(
             [InlineKeyboardButton(texts[usr_lng]["buttonBackMainMenu"], callback_data=main_menu_cb)])  # Add back button
         temp_reply_markup = InlineKeyboardMarkup(temp_keys)
@@ -429,12 +433,19 @@ async def products(query: CallbackQuery):
 
     try:
         # Create buttons for products
-        temp_keys = [
-            [InlineKeyboardButton(await get_name(usr_lng, prod), callback_data=f"{select_product_cb}_{prod.id}") for
-             prod in
-             all_products[i:i + products_in_row]]
-            for i in range(0, len(all_products), products_in_row)
-        ]
+        temp_keys = []
+        for i in range(0, len(all_products), products_in_row):
+            # Gather the product names asynchronously
+            names = await asyncio.gather(
+                *[get_name(usr_lng, prod) for prod in all_products[i:i + products_in_row]]
+            )
+            # Create a row of InlineKeyboardButtons
+            row = [
+                InlineKeyboardButton(name, callback_data=f"{select_product_cb}_{prod.id}")
+                for name, prod in zip(names, all_products[i:i + products_in_row])
+            ]
+            temp_keys.append(row)
+
         temp_keys.append(
             [InlineKeyboardButton(texts[usr_lng]["buttonBackMainMenu"], callback_data=main_menu_cb)])  # Add back button
         temp_keys.append([InlineKeyboardButton(texts[usr_lng]["textBackButton"], callback_data=categories_cb)])
