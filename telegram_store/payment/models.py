@@ -6,6 +6,7 @@ from bot_settings import valid_link_in_seconds
 
 # Create your models here.
 
+# Todo: Add tracking code
 class Transactions(models.Model):
     user = models.ForeignKey(to=UserData, on_delete=models.CASCADE, verbose_name="User")
     transaction_code = models.IntegerField(unique=True, blank=True, null=True)
