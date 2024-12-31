@@ -68,6 +68,8 @@ This bot is a Python-based Telegram bot seamlessly integrated with a Django back
 1. **Clone the Repository**:
    ```bash
    git clone https://github.com/RezaTaheri01/telegram-store-bot.git
+   ```
+   ```bash
    cd telegram-store-bot/telegram_store
    ```
 
@@ -86,11 +88,18 @@ This bot is a Python-based Telegram bot seamlessly integrated with a Django back
      TOKEN=<your-telegram-bot-token>
      ```
 
-5. **Migrate the Database**:
+5. **Migrate the Database** and  **Create Super User**:
    ```bash
    python manage.py makemigrations payment users products
+   ```
+   ```bash
    python manage.py migrate
    ```
+
+   ```bash
+   python manage.py createsuperuser
+   ```
+   
 
 6. **Run the Django Development Server**:
    ```bash
