@@ -1,14 +1,16 @@
 from telegram import InlineKeyboardButton, InlineKeyboardMarkup
 
-categories_in_row = 1
-products_in_row = 1
-valid_link_in_seconds = 3600
+categories_in_row = 1  # number of categories in row
+products_in_row = 1  # number of products in row
+number_of_transaction = 10  # number of transactions in transactions list
+valid_link_in_seconds = 3600  # 1 hour
+
 # For more than 2 languages you need to add field to product.model category and product
-# also add your language in bot.py product_categories and products functions
+# also add your language in bot.py get_name, change_language functions
 lang1, lang2 = "en", "fa"
 # aging_limit = 1  # days
 
-# Todo: improve payment url and fetch bot link automatically
+# Todo: improve payment url
 payment_url = "http://127.0.0.1:8000/payment/confirm/?chat_id={}&user_id={}&amount={}&bot_link={}&transaction={}"
 bot_link = "https://t.me/{}"  # bot username
 
@@ -17,7 +19,7 @@ texts = {
     lang1: {
         "textError": "Something went wrong",
         "textStart": "Hello, {}!\nWelcome to Persia shop",  # username
-        "textMenu": "Choose from below:",
+        "textMenu": "Please choose from below:",
         "textPriceUnit": "dollar",
         "textBalance": "Your current balance is {} {}",  # amount, price unit
         "textAmount": "Please enter the amount:",
@@ -25,7 +27,7 @@ texts = {
         "textChargeAccount": "Your account has been successfully charged {} {}",  # amount, price unit
         "textPaymentLink": f"Your payment link is ready and it's valid for {valid_link_in_seconds // 3600} hour",
         "textNoTransaction": "No transactions were found",
-        "textTransaction": "Here are your last 5 transactions:\n\n",
+        "textTransaction": f"Here are your last {number_of_transaction} transactions:\n\n",
         "textAccountMenu": "Hello, {}! How can I assist you today?",  # username
         "textAccInfo": "Username: {}\nFull name: {}\nBalance: {} {}",  # username, full name, balance
         "textNotUser": "User not found",
@@ -65,7 +67,7 @@ texts = {
         "textChargeAccount": "حساب شما با موفقیت به مقدار {} {} شارژ شد",  # amount, price unit
         "textPaymentLink": f"لینک پرداخت شما آماده است و برای {valid_link_in_seconds // 3600} ساعت معتبر است.",
         "textNoTransaction": "هیچ تراکنشی یافت نشد",
-        "textTransaction": "در اینجا ۵ تراکنش آخر شما آمده است:\n\n",
+        "textTransaction": f"در اینجا {number_of_transaction} تراکنش آخر شما آمده است:\n\n",
         "textAccountMenu": "سلام، {}! چگونه می‌توانم به شما کمک کنم؟",  # username
         "textAccInfo": "نام کاربری: {}\nنام کامل: {}\nموجودی: {} {}",  # username, full name, balance
         "textNotUser": "کاربر یافت نشد",
@@ -107,6 +109,7 @@ categories_cb = "4"
 deposit_cb = "5"
 transactions_cb = "6"
 change_lang_cb = "7"
+# Do not use _ in below callbacks
 select_category_cb = "cat"
 select_product_cb = "pro"
 payment_cb = "pay"
