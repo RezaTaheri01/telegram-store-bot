@@ -257,7 +257,7 @@ async def change_user_language(query: CallbackQuery):
 # Call this after successful payment
 async def charge_account(user_id: str, chat_id: str, amount: int, transaction_code: int):
     user_id: int = int(user_id)
-    usr_lng = await user_language(user_id)
+    usr_lng = await user_language(user_id, False)
 
     transaction: Transactions = await sync_to_async(
         Transactions.objects.filter(user_id=user_id,
@@ -302,7 +302,6 @@ async def deposit_money(update: Update, context: CallbackContext):
 async def deposit_money_from_callback(update: Update, context: CallbackContext):
     query: CallbackQuery = update.callback_query
     usr_lng = await user_language(query.from_user.id)
-
     if query.data != deposit_cb:
         return ConversationHandler.END
     await query.edit_message_text(text=texts[usr_lng]["textAmount"], reply_markup=buttons[usr_lng]["back_menu_markup"])
@@ -606,9 +605,9 @@ async def delete_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 
 # Todo: use cachetools for an LRU (Least Recently Used) cache to manage memory effectively.
-async def user_language(user_id: int):
+async def user_language(user_id: int, cache: bool = True):
     date_now = timezone.now().date()
-    if user_id not in language_cache:
+    if user_id not in language_cache or not cache:
         user = await sync_to_async(UserData.objects.filter(id=user_id).first)()
         if not user:
             language_cache[user_id] = (lang1, date_now)
