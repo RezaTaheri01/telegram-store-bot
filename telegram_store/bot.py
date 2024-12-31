@@ -1,7 +1,7 @@
 # import sys
+import asyncio
 
 # region bot settings
-# Todo: manage import when call charge account
 if __name__ == "__main__":
     from bot_settings import *
 else:
@@ -195,7 +195,7 @@ async def account_transactions(query: CallbackQuery) -> None:
         user_transaction: Transactions = await sync_to_async(
             lambda: list(
                 Transactions.objects.filter(user_id=user_id, is_paid=True)
-                .order_by('-paid_time')[:5]
+                .order_by('-paid_time')[:number_of_transaction]
             )
         )()
 
@@ -275,17 +275,12 @@ async def charge_account(user_id: str, chat_id: str, amount: int, transaction_co
 
     # Todo: retry method for this section: On success, the sent message is returned.
     # send status to user
+
     bot = await sync_to_async(Bot)(token=token)
-    result = await bot.send_message(chat_id=chat_id,
-                                    text=texts[usr_lng]["textChargeAccount"].format(amount,
-                                                                                    texts[usr_lng]["textPriceUnit"]),
-                                    reply_markup=None)
-    if not result:
-        bot = await sync_to_async(Bot)(token=token)
-        await bot.send_message(chat_id=chat_id,
-                               text=texts[usr_lng]["textChargeAccount"].format(amount, texts[usr_lng][
-                                   "textPriceUnit"]),
-                               reply_markup=None)
+    await send_message_with_retry(bot=bot,
+                                  chat_id=chat_id,
+                                  text=texts[usr_lng]["textChargeAccount"].format(amount,
+                                                                                  texts[usr_lng]["textPriceUnit"]), )
 
     return True
 
@@ -537,12 +532,9 @@ async def payment(update: Update, context: CallbackContext, query: CallbackQuery
         await sync_to_async(product.save)()  # first update product detail
         await sync_to_async(current_user.save)()  # then update balance
 
-        # Todo: retry method for this section: On success, the sent message is returned.
-        result = await context.bot.send_message(text=texts[usr_lng]["textProductDetail"].format(product.details),
-                                                chat_id=update.effective_chat.id)
-        if not result:
-            await context.bot.send_message(text=texts[usr_lng]["textProductDetail"].format(product.details),
-                                           chat_id=update.effective_chat.id)
+        await send_message_with_retry(bot=context.bot,
+                                      chat_id=update.effective_chat.id,
+                                      text=texts[usr_lng]["textProductDetail"].format(product.details))
         # await query.delete_message()
     except Exception as e:
         await update.message.reply_text(texts[usr_lng]["textError"], reply_markup=buttons[usr_lng]["back_menu_markup"])
@@ -602,12 +594,12 @@ async def delete_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await update.message.delete()
 
 
+# Todo: use cachetools for an LRU (Least Recently Used) cache to manage memory effectively.
 async def user_language(user_id: int):
     date_now = timezone.now().date()
     if user_id not in language_cache:
         user = await sync_to_async(UserData.objects.filter(id=user_id).first)()
         language_cache[user_id] = (user.language, date_now)
-        # Todo: check language_cache length and remove old ones (parallel) base on days
         # print(language_cache)
         # print(sys.getsizeof(language_cache))
         return user.language
@@ -615,6 +607,18 @@ async def user_language(user_id: int):
         # reset aging
         # language_cache[user_id] = (language_cache[user_id][0], date_now)
         return language_cache[user_id][0]
+
+
+async def send_message_with_retry(bot, chat_id, text, retry=5):
+    for attempt in range(retry):
+        try:
+            return await bot.send_message(chat_id=chat_id, text=text)
+        except Exception as e:
+            if attempt < retry - 1:
+                await asyncio.sleep(2 ** attempt)  # Exponential backoff
+            else:
+                logger.error(f"Failed to send message after {retry} attempts: {e}")
+                return None
 
 
 # Main function
