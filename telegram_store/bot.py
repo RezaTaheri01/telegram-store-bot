@@ -599,6 +599,9 @@ async def user_language(user_id: int):
     date_now = timezone.now().date()
     if user_id not in language_cache:
         user = await sync_to_async(UserData.objects.filter(id=user_id).first)()
+        if not user:
+            language_cache[user_id] = (lang1, date_now)
+            return lang1
         language_cache[user_id] = (user.language, date_now)
         # print(language_cache)
         # print(sys.getsizeof(language_cache))
