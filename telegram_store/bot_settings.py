@@ -3,14 +3,20 @@ from telegram import InlineKeyboardButton, InlineKeyboardMarkup
 categories_in_row = 2  # number of categories in row
 products_in_row = 2  # number of products in row
 number_of_transaction = 10  # number of transactions in transactions list
-valid_link_in_seconds = 1800  # half an hour
+valid_link_in_seconds = 1800  # 30 minutes
 
-# For more than 2 languages you need to add field to product.model category and product
-# also add your language in bot.py get_name, change_language functions
-lang1, lang2 = "en", "fa"
-# aging_limit = 1  # days
+""" To add more languages:
+1. update line 109 of telegram_store/setting.py like others
+2. add lang<number> below and update texts dictionary
+3. run "python manage.py makemigrations payment users products"
+4. "python manage.py migrate"
+5. In domain/admin fill your new fields on products category and product
+"""
 
-# Todo: improve payment url
+lang1, lang2, lang3 = "en", "fa", "du"  # base on languages in telegram_store/setting.py
+
+# Todo: improve payment url and get it automatically
+# modify payment_url your base on your domain, just this part(http://127.0.0.1:8000)
 payment_url = "http://127.0.0.1:8000/payment/confirm/?chat_id={}&user_id={}&amount={}&bot_link={}&transaction={}"
 bot_link = "https://t.me/{}"  # bot username
 
@@ -20,7 +26,7 @@ texts = {
         "textError": "Something went wrong",
         "textStart": "Hello, {}!\nWelcome to Persia shop",  # username
         "textMenu": "Please choose from below",
-        "textPriceUnit": "dollar",
+        "textPriceUnit": "Dollar",
         "textBalance": "Your current balance is {} {}",  # amount, price unit
         "textAmount": "Please enter the amount:",
         "textInvalidAmount": "Invalid input. Please enter a valid number:",
@@ -94,7 +100,47 @@ texts = {
         "buttonTransactionsList": "لیست تراکنش ها",
         "buttonBackMainMenu": "منوی اصلی",
         "buttonBack": "بازگشت",
-        "buttonLanguage": lang1,  # don't change this
+        "buttonLanguage": lang3,  # don't change this
+    },
+    lang3: {
+        "textError": "Etwas ist schiefgelaufen",
+        "textStart": "Hallo, {}!\nWillkommen im Persia Shop",  # username
+        "textMenu": "Bitte wählen Sie aus den folgenden Optionen",
+        "textPriceUnit": "Dollar",
+        "textBalance": "Ihr aktuelles Guthaben beträgt {} {}",  # amount, price unit
+        "textAmount": "Bitte geben Sie den Betrag ein:",
+        "textInvalidAmount": "Ungültige Eingabe. Bitte geben Sie eine gültige Zahl ein:",
+        "textChargeAccount": "Ihr Konto wurde erfolgreich mit {} {} aufgeladen",  # amount, price unit
+        "textPaymentLink": f"Ihr Zahlungslink ist bereit und für {valid_link_in_seconds // 60} Minuten gültig",
+        "textNoTransaction": "Es wurden keine Transaktionen gefunden",
+        "textTransaction": f"Hier sind Ihre letzten {number_of_transaction} Transaktionen:\n\n",
+        "textAccountMenu": "Hallo {}! Bitte wählen Sie aus den folgenden Optionen",  # username
+        "textAccInfo": "Benutzername: {}\nVollständiger Name: {}\nGuthaben: {} {}",  # username, full name, balance
+        "textNotUser": "Benutzer nicht gefunden",
+        "textPayButton": "Bezahlen",
+        "textNotFound": "Nicht gefunden",
+        "textProductCategories": "Produktkategorien",
+        "textInvalidCategory": "Ungültige Kategorie-ID",
+        "textNoProductFound": "Für diese Kategorie wurden keine Produkte gefunden",
+        "textBackButton": "Zurück",
+        "textInvalidProduct": "Ungültige Produkt-ID! Bitte versuchen Sie es erneut",
+        "textProductList": "{} Produkte",  # category name
+        "textProductSoldOut": "Dieses Produkt ist ausverkauft oder nicht mehr verfügbar",
+        "textPurchaseBill": "Das {} kostet {} {}",  # product name, price, price unit
+        "textNotEnoughMoney": "Unzureichende Mittel",
+        "textInvalidPaymentAmount": "Ungültiger Zahlungsbetrag! Bitte versuchen Sie es erneut",
+        "textProductDetail": "Erfolgreich\n{}",  # product detail
+        "textTransactionDetail": "Betrag: {} {}\nDatum: {}\n\n",  # amount, priceUnit, datetime
+        # Button texts
+        "buttonAccount": "Kontomenü",
+        "buttonBalance": "Mein Guthaben",
+        "buttonCategories": "Produktkategorien",
+        "buttonDeposit": "Einzahlen",
+        "buttonAccountInfo": "Kontoinformationen",
+        "buttonTransactionsList": "Transaktionsliste",
+        "buttonBackMainMenu": "Hauptmenü",
+        "buttonBack": "Zurück",
+        "buttonLanguage": lang1,  # Don't change this
     }
 }
 # endregion
@@ -109,7 +155,7 @@ categories_cb = "4"
 deposit_cb = "5"
 transactions_cb = "6"
 change_lang_cb = "7"
-# Do not use _ in below callbacks
+# Warning: Do not use _ in below callbacks!
 select_category_cb = "cat"
 select_product_cb = "pro"
 payment_cb = "pay"
