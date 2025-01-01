@@ -37,6 +37,7 @@ INSTALLED_APPS = [
     'django.contrib.staticfiles',
     # externals apps
     'encrypted_json_fields',
+    'modeltranslation',
     # internals apps
     'users',
     'payment',
@@ -104,6 +105,13 @@ AUTH_PASSWORD_VALIDATORS = [
 
 # Internationalization
 # https://docs.djangoproject.com/en/5.1/topics/i18n/
+
+# Add language here
+LANGUAGES = [
+    ('fa', 'فارسی'),  # Persian
+    ('en', 'English'),
+    ('du', 'German'),
+]
 
 LANGUAGE_CODE = 'en-us'
 
