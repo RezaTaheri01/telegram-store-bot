@@ -33,7 +33,7 @@ class Transactions(models.Model):
         self.save()
 
     def is_expired(self):
-        if (timezone.now() - self.created_date).total_seconds() > valid_link_in_seconds:  # 1 hour:
+        if (timezone.now() - self.created_date).total_seconds() > valid_link_in_seconds:  # check bot_settings.py
             self.is_delete = True
             self.save()
             return True
