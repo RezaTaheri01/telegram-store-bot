@@ -6,6 +6,7 @@ from encrypted_json_fields.fields import EncryptedCharField
 # Todo: multilanguage name fields
 # Create your models here.
 class Category(models.Model):
+    # name fields are better to be unique
     name = models.CharField(max_length=32, verbose_name="Category Name")
     name_second = models.CharField(max_length=32, verbose_name="Category Name Second Language")
     # add more name field for more language also in product model
@@ -22,6 +23,7 @@ class Category(models.Model):
 
 # Todo: add price here not in each product detail Done
 class Product(models.Model):
+    # name fields are better to be unique
     category = models.ForeignKey(to=Category, on_delete=models.SET_NULL, null=True, verbose_name="Category")
     name = models.CharField(max_length=32, verbose_name="Product Name")
     name_second = models.CharField(max_length=32, verbose_name="Product Name Second Language")
@@ -35,7 +37,7 @@ class Product(models.Model):
         verbose_name_plural = "Products"
 
     def __str__(self):
-        return self.name
+        return f"{self.name}({self.category.name})"
 
 
 class ProductDetail(models.Model):
