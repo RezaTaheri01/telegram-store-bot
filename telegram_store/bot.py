@@ -244,9 +244,19 @@ async def check_create_account(update: Update) -> None:
 async def change_user_language(query: CallbackQuery):
     user = await sync_to_async(UserData.objects.filter(id=query.from_user.id).first)()
 
-    if user.language == lang1:
-        user.language = lang2
-    else:
+    try:
+        found = False
+        for k in texts.keys():
+            if found:
+                user.language = k
+                found = False
+                break
+            if k == user.language:
+                found = True
+        if found:
+            user.language = lang1
+    except:
+        logger.error("can't find next language in change language")
         user.language = lang1
 
     await sync_to_async(user.save)()
