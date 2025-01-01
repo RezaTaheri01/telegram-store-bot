@@ -5,7 +5,7 @@ import asyncio
 if __name__ == "__main__":
     from bot_settings import *
 else:
-    from bot_settings import texts, lang1, lang2
+    from bot_settings import texts, lang1
 # endregion
 
 
