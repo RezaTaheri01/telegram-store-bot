@@ -79,11 +79,12 @@ language_cache: dict = {}
 
 async def start_menu(update: Update, context: CallbackContext) -> None:  # active command is /start
     usr_lng = await user_language(update.effective_user.id)
+    full_name = f"{update.effective_user.first_name or ''} {update.effective_user.last_name or ''}".strip()
     try:
         await check_create_account(update)  # Create a user if not exist
         await context.bot.send_message(
             chat_id=update.effective_user.id,
-            text=texts[usr_lng]["textStart"].format(update.effective_user.username),
+            text=texts[usr_lng]["textStart"].format(full_name),
             reply_markup=buttons[usr_lng]["main_menu_markup"],
         )
         await update.message.delete()
@@ -158,9 +159,10 @@ async def user_balance_from_call_back(update: Update, query: CallbackQuery) -> N
 
 async def account_menu_call_back(query: CallbackQuery):
     usr_lng = await user_language(query.from_user.id)
+    full_name = f"{query.from_user.first_name or ''} {query.from_user.last_name or ''}".strip()
     try:
         await query.edit_message_text(
-            text=texts[usr_lng]["textAccountMenu"].format(query.from_user.username),
+            text=texts[usr_lng]["textAccountMenu"].format(full_name),
             reply_markup=buttons[usr_lng]["account_keys_markup"],
         )
     except Exception as e:
@@ -225,7 +227,7 @@ async def check_create_account(update: Update) -> None:
         try:
             first_name = update.effective_user.first_name or None
             last_name = update.effective_user.last_name or None
-            username = update.effective_user.username
+            username = update.effective_user.username or None
 
             new_user = UserData(
                 id=update.effective_user.id,
