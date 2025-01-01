@@ -7,8 +7,7 @@ from encrypted_json_fields.fields import EncryptedCharField
 # Create your models here.
 class Category(models.Model):
     # name fields are better to be unique
-    name = models.CharField(max_length=32, verbose_name="Category Name")
-    name_second = models.CharField(max_length=32, verbose_name="Category Name Second Language")
+    name = models.CharField(max_length=32, verbose_name="Category Name", unique=True, null=False)
     # add more name field for more language also in product model
     # the name should be the same as Product
     is_delete = models.BooleanField(default=False, blank=True)
@@ -25,8 +24,7 @@ class Category(models.Model):
 class Product(models.Model):
     # name fields are better to be unique
     category = models.ForeignKey(to=Category, on_delete=models.SET_NULL, null=True, verbose_name="Category")
-    name = models.CharField(max_length=32, verbose_name="Product Name")
-    name_second = models.CharField(max_length=32, verbose_name="Product Name Second Language")
+    name = models.CharField(max_length=32, verbose_name="Product Name", unique=True, null=False)
     # add more name field for more language also in category model
     # the name should be the same as Product
     price = models.IntegerField(verbose_name="Product Price")
