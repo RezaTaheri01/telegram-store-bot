@@ -1,9 +1,9 @@
 from telegram import InlineKeyboardButton, InlineKeyboardMarkup
 
-categories_in_row = 1  # number of categories in row
-products_in_row = 1  # number of products in row
+categories_in_row = 2  # number of categories in row
+products_in_row = 2  # number of products in row
 number_of_transaction = 10  # number of transactions in transactions list
-valid_link_in_seconds = 3600  # 1 hour
+valid_link_in_seconds = 1800  # half an hour
 
 # For more than 2 languages you need to add field to product.model category and product
 # also add your language in bot.py get_name, change_language functions
@@ -19,16 +19,16 @@ texts = {
     lang1: {
         "textError": "Something went wrong",
         "textStart": "Hello, {}!\nWelcome to Persia shop",  # username
-        "textMenu": "Please choose from below:",
+        "textMenu": "Please choose from below",
         "textPriceUnit": "dollar",
         "textBalance": "Your current balance is {} {}",  # amount, price unit
         "textAmount": "Please enter the amount:",
         "textInvalidAmount": "Invalid input. Please enter a valid number:",
         "textChargeAccount": "Your account has been successfully charged {} {}",  # amount, price unit
-        "textPaymentLink": f"Your payment link is ready and it's valid for {valid_link_in_seconds // 3600} hour",
+        "textPaymentLink": f"Your payment link is ready and it's valid for {valid_link_in_seconds // 60} minutes",
         "textNoTransaction": "No transactions were found",
         "textTransaction": f"Here are your last {number_of_transaction} transactions:\n\n",
-        "textAccountMenu": "Hello, {}! How can I assist you today?",  # username
+        "textAccountMenu": "Hey {}! Please choose from below",  # username
         "textAccInfo": "Username: {}\nFull name: {}\nBalance: {} {}",  # username, full name, balance
         "textNotUser": "User not found",
         "textPayButton": "Pay",
@@ -65,10 +65,10 @@ texts = {
         "textAmount": "لطفاً مقدار را وارد کنید:",
         "textInvalidAmount": "ورودی نامعتبر است. لطفاً یک عدد معتبر وارد کنید:",
         "textChargeAccount": "حساب شما با موفقیت به مقدار {} {} شارژ شد",  # amount, price unit
-        "textPaymentLink": f"لینک پرداخت شما آماده است و برای {valid_link_in_seconds // 3600} ساعت معتبر است.",
+        "textPaymentLink": f"لینک پرداخت شما آماده است و برای {valid_link_in_seconds // 60} دقیقه معتبر است.",
         "textNoTransaction": "هیچ تراکنشی یافت نشد",
         "textTransaction": f"در اینجا {number_of_transaction} تراکنش آخر شما آمده است:\n\n",
-        "textAccountMenu": "سلام، {}! چگونه می‌توانم به شما کمک کنم؟",  # username
+        "textAccountMenu": "درود مجدد {}! لطفا از گزینه های زیر انتخاب کنید",  # username
         "textAccInfo": "نام کاربری: {}\nنام کامل: {}\nموجودی: {} {}",  # username, full name, balance
         "textNotUser": "کاربر یافت نشد",
         "textPayButton": "پرداخت",
