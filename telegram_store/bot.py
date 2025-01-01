@@ -385,11 +385,16 @@ async def cancel_back_to_menu(update: Update, context: CallbackContext):
 
 # region Products
 async def get_name(user_lang: str, current_object) -> str:
-    current_name = current_object.name  # default is first language
-    if user_lang == lang2:
-        current_name = current_object.name_second
-    # add more elif state in here also add your language to bot_settings.py
-    return current_name
+    current_name = current_object.name  # default is first language "en"
+    try:
+        if user_lang != lang1:  # name_<your language from setting.py>
+            current_name = eval(f"current_object.name_{user_lang}")
+            if not current_name:
+                return current_object.name
+        return current_name
+    except:
+        logger.error("language not founded")
+        return current_object.name
 
 
 async def product_categories(query: CallbackQuery):
