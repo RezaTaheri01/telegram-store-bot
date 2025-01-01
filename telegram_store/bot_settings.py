@@ -13,6 +13,8 @@ valid_link_in_seconds = 1800  # 30 minutes
 5. In domain/admin fill your new fields on products category and product
 """
 
+# lang1 is your primary language
+# default language for users.models.UserData.language is 'en'
 lang1, lang2, lang3 = "en", "fa", "du"  # base on languages in telegram_store/setting.py
 
 # Todo: improve payment url and get it automatically
@@ -21,6 +23,7 @@ payment_url = "http://127.0.0.1:8000/payment/confirm/?chat_id={}&user_id={}&amou
 bot_link = "https://t.me/{}"  # bot username
 
 # region Multi language texts
+# Attention the order of languages are important(should be same as lang and 109 of telegram_store/setting.py)
 texts = {
     lang1: {
         "textError": "Something went wrong",
