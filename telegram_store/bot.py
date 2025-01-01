@@ -59,7 +59,7 @@ logging.basicConfig(
 # endregion
 
 
-# region global variables
+# region Global Variables
 
 # Define states
 ENTER_AMOUNT = 1
@@ -285,9 +285,7 @@ async def charge_account(user_id: str, chat_id: str, amount: int, transaction_co
     await sync_to_async(current_user.save)()
     await sync_to_async(transaction.mark_as_paid)()
 
-    # Todo: retry method for this section: On success, the sent message is returned.
     # send status to user
-
     bot = await sync_to_async(Bot)(token=token)
     await send_message_with_retry(bot=bot,
                                   chat_id=chat_id,
@@ -331,7 +329,7 @@ async def capture_amount(update: Update, context: CallbackContext):
     try:
         amount = int(user_input)
         '''
-        Todo Done :)
+        Todo : redirect to psp then redirect to bot, no need for extra pages.
         Instead of call charge_account, I need to send a link
         to payment page that created by Django and if successful, call charge_account.
         After payment done, a pop up to open telegram app desktop or mobile.
@@ -390,10 +388,12 @@ async def get_name(user_lang: str, current_object) -> str:
         if user_lang != lang1:  # name_<your language from setting.py>
             current_name = eval(f"current_object.name_{user_lang}")
             if not current_name:
+                logger.error(
+                    f"name {current_object.name} for language {user_lang} not founded return {current_object.name}")
                 return current_object.name
         return current_name
     except:
-        logger.error("language not founded")
+        logger.error("language not founded return name base on lang1")
         return current_object.name
 
 
