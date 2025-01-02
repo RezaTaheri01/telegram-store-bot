@@ -177,7 +177,7 @@ async def account_info(query: CallbackQuery) -> None:
 
     await query.edit_message_text(text=texts[usr_lng]["textAccInfo"].format(
         user_data.username,
-        (user_data.first_name or "") + (user_data.last_name or ""),
+        (user_data.first_name or "") + " " + (user_data.last_name or ""),
         user_data.balance,
         texts[usr_lng]["textPriceUnit"]),
         reply_markup=buttons[usr_lng]["back_to_acc_markup"])
@@ -202,8 +202,11 @@ async def account_transactions(query: CallbackQuery) -> None:
 
         result_data = texts[usr_lng]["textTransaction"]
         for t in user_transaction:
-            result_data += texts[usr_lng]["textTransactionDetail"].format(t.amount, texts[usr_lng]["textPriceUnit"],
-                                                                          t.paid_time)
+            # Format paid_time using strftime
+            formatted_time = t.paid_time.strftime("%Y-%m-%d %H:%M:%S")
+            result_data += texts[usr_lng]["textTransactionDetail"].format(t.amount,
+                                                                          texts[usr_lng]["textPriceUnit"],
+                                                                          formatted_time)
 
         await query.edit_message_text(text=result_data, reply_markup=buttons[usr_lng]["back_to_acc_markup"])
 
