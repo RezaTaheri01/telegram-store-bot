@@ -10,7 +10,7 @@ This bot is a Python-based Telegram bot seamlessly integrated with a Django back
 ### Telegram Bot 📲
 
 - **Multi-language Support**:
-  - Currently supports two languages, with the ability to add more.
+  - Currently supports three languages, with the ability to add more.(There is a help comment in bot_settings.py)
   - Users can change the language via the main menu.
 
 - **User Account Management**:
