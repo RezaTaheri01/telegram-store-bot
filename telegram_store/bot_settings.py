@@ -1,10 +1,3 @@
-from telegram import InlineKeyboardButton, InlineKeyboardMarkup
-
-categories_in_row = 2  # number of categories in row
-products_in_row = 2  # number of products in row
-number_of_transaction = 10  # number of transactions in transactions list
-valid_link_in_seconds = 1800  # 30 minutes
-
 """ To add more languages:
 1. update line 109 of telegram_store/setting.py like others
 2. add lang<number> below and update texts dictionary
@@ -13,17 +6,22 @@ valid_link_in_seconds = 1800  # 30 minutes
 5. In domain/admin fill your new fields on products category and product
 """
 
+from telegram import InlineKeyboardButton, InlineKeyboardMarkup
+
+categories_in_row = 2  # number of categories in row
+products_in_row = 2  # number of products in row
+number_of_transaction = 10  # number of transactions in transactions list
+valid_link_in_seconds = 1800  # 30 minutes
+
 # lang1 is your primary language
-# default language for users.models.UserData.language is 'en'
 lang1, lang2, lang3 = "en", "fa", "du"  # base on languages in telegram_store/setting.py
 
-# Todo: improve payment url and get it automatically
 # modify payment_url your base on your domain, just this part(http://127.0.0.1:8000)
 payment_url = "http://127.0.0.1:8000/payment/confirm/?chat_id={}&user_id={}&amount={}&bot_link={}&transaction={}"
 bot_link = "https://t.me/{}"  # bot username
 
 # region Multi language texts
-# Attention the order of languages are important(should be same as lang and 109 of telegram_store/setting.py)
+# Attention the order of languages are important(should be same as lang and line 109 in telegram_store/setting.py)
 texts = {
     lang1: {
         "textError": "Something went wrong",
