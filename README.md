@@ -79,7 +79,8 @@ This bot is a Python-based Telegram bot seamlessly integrated with a Django back
    ```
 
 3. **Configure Django Settings**:
-   - Set the `telegram_store.settings` module.
+   - Set the `telegram_store.settings` module:
+     - Change `EJF_ENCRYPTION_KEYS` and `SECRET_KEY`
    - Configure your database in `settings.py`.
 
 4. **Set Up Environment Variables**:
