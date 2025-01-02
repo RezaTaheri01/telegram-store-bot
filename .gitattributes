@@ -5,12 +5,12 @@
 # *.scss linguist-vendored
 # *.less linguist-vendored
 
-static/admin/**/*.css linguist-vendored
-static/admin/**/*.js linguist-vendored
-static/admin/**/*.scss linguist-vendored
-static/admin/**/*.less linguist-vendored
+telegram_store/static/admin/**/*.css linguist-vendored
+telegram_store/static/admin/**/*.js linguist-vendored
+telegram_store/static/admin/**/*.scss linguist-vendored
+telegram_store/static/admin/**/*.less linguist-vendored
 
-static/modeltranslation/**/*.css linguist-vendored
-static/modeltranslation/**/*.js linguist-vendored
-static/modeltranslation/**/*.scss linguist-vendored
-static/modeltranslation/**/*.less linguist-vendored
+telegram_store/static/modeltranslation/**/*.css linguist-vendored
+telegram_store/static/modeltranslation/**/*.js linguist-vendored
+telegram_store/static/modeltranslation/**/*.scss linguist-vendored
+telegram_store/static/modeltranslation/**/*.less linguist-vendored
