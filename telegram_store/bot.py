@@ -1,13 +1,5 @@
-# import sys
 import asyncio
-
-# region bot settings
-if __name__ == "__main__":
-    from bot_settings import *
-else:
-    from bot_settings import texts, lang1
-# endregion
-
+from bot_settings import *
 
 # region Django Imports
 import os
@@ -37,7 +29,6 @@ from telegram.ext import (
     CallbackContext,
     ContextTypes,
 )
-from telegram import Bot
 from asgiref.sync import sync_to_async
 from decouple import config
 # endregion
@@ -51,7 +42,7 @@ logger = logging.getLogger(__name__)
 
 # Set up logging
 logging.basicConfig(
-    filename='logs.log',
+    filename='bot_logs.log',
     format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
     level=logging.WARN
 )
@@ -115,7 +106,8 @@ async def user_balance(update: Update, context: CallbackContext) -> None:
     balance = 0  # Default balance
     usr_lng = await user_language(update.effective_user.id)
     try:
-        current_user = await sync_to_async(UserData.objects.filter(id=update.effective_user.id).first)()
+        current_user = await sync_to_async(UserData.objects.filter(id=update.effective_user.id).first,
+                                           thread_sensitive=True)()
 
         if not current_user:
             await check_create_account(update)
@@ -123,7 +115,8 @@ async def user_balance(update: Update, context: CallbackContext) -> None:
             balance = current_user.balance
 
         await update.message.reply_text(
-            text=texts[usr_lng]["textBalance"].format(balance, texts[usr_lng]["textPriceUnit"]),
+            text=texts[usr_lng]["textBalance"].format(
+                balance, texts[usr_lng]["textPriceUnit"]),
             reply_markup=buttons[usr_lng]["back_menu_markup"])
         await update.message.delete()
     except Exception as e:
@@ -135,7 +128,8 @@ async def user_balance_from_call_back(update: Update, query: CallbackQuery) -> N
     balance = 0  # Default balance
     usr_lng = await user_language(update.effective_user.id)
     try:
-        current_user = await sync_to_async(UserData.objects.filter(id=query.from_user.id).first)()
+        current_user = await sync_to_async(UserData.objects.filter(id=query.from_user.id).first,
+                                           thread_sensitive=True)()
 
         if not current_user:
             await check_create_account(update)
@@ -173,7 +167,7 @@ async def account_menu_call_back(query: CallbackQuery):
 
 async def account_info(query: CallbackQuery) -> None:
     user_id = query.from_user.id
-    user_data = await sync_to_async(UserData.objects.filter(id=user_id).first)()
+    user_data = await sync_to_async(UserData.objects.filter(id=user_id).first, thread_sensitive=True)()
     usr_lng = await user_language(user_id)
 
     if not user_data:
@@ -198,7 +192,7 @@ async def account_transactions(query: CallbackQuery) -> None:
             lambda: list(
                 Transactions.objects.filter(user_id=user_id, is_paid=True)
                 .order_by('-paid_time')[:number_of_transaction]
-            )
+            ), thread_sensitive=True
         )()
 
         if not user_transaction:
@@ -221,7 +215,7 @@ async def account_transactions(query: CallbackQuery) -> None:
 async def check_create_account(update: Update) -> None:
     user_id = update.effective_user.id
     usr_lng = await user_language(user_id)
-    found: bool = await sync_to_async(UserData.objects.filter(id=user_id).exists)()
+    found: bool = await sync_to_async(UserData.objects.filter(id=user_id).exists, thread_sensitive=True)()
 
     if not found:
         try:
@@ -235,14 +229,14 @@ async def check_create_account(update: Update) -> None:
                 last_name=last_name,
                 username=username,
             )
-            await sync_to_async(new_user.save)()
+            await sync_to_async(new_user.save, thread_sensitive=True)()
         except Exception as e:
             await update.message.reply_text(texts[usr_lng]["textError"])
             logger.error(f"Error in check_create_account function: {e}")
 
 
 async def change_user_language(query: CallbackQuery):
-    user = await sync_to_async(UserData.objects.filter(id=query.from_user.id).first)()
+    user = await sync_to_async(UserData.objects.filter(id=query.from_user.id).first, thread_sensitive=True)()
 
     try:
         found = False
@@ -259,40 +253,11 @@ async def change_user_language(query: CallbackQuery):
         logger.error("can't find next language in change language")
         user.language = lang1
 
-    await sync_to_async(user.save)()
+    await sync_to_async(user.save, thread_sensitive=True)()
     language_cache[user.id] = (user.language, timezone.now().date())
 
     await query.edit_message_text(text=texts[user.language]["textMenu"],
                                   reply_markup=buttons[user.language]['main_menu_markup'])
-
-
-# Call this after successful payment
-async def charge_account(user_id: str, chat_id: str, amount: int, transaction_code: int):
-    user_id: int = int(user_id)
-    usr_lng = await user_language(user_id, False)
-
-    transaction: Transactions = await sync_to_async(
-        Transactions.objects.filter(user_id=user_id,
-                                    transaction_code__exact=transaction_code,
-                                    is_delete=False).first)()
-
-    if not transaction or transaction.is_paid or transaction.is_expired():  # double check :)
-        return False
-
-    current_user: UserData = await sync_to_async(UserData.objects.filter(id=user_id).first)()
-    current_user.balance += amount
-
-    await sync_to_async(current_user.save)()
-    await sync_to_async(transaction.mark_as_paid)()
-
-    # send status to user
-    bot = await sync_to_async(Bot)(token=token)
-    await send_message_with_retry(bot=bot,
-                                  chat_id=chat_id,
-                                  text=texts[usr_lng]["textChargeAccount"].format(amount,
-                                                                                  texts[usr_lng]["textPriceUnit"]), )
-
-    return True
 
 
 # endregion
@@ -300,6 +265,8 @@ async def charge_account(user_id: str, chat_id: str, amount: int, transaction_co
 
 # region ConversationHandler
 # Deposit money conversation handler
+
+
 async def deposit_money(update: Update, context: CallbackContext):
     usr_lng = await user_language(update.effective_user.id)
     await update.message.reply_text(text=texts[usr_lng]["textAmount"],
@@ -340,9 +307,9 @@ async def capture_amount(update: Update, context: CallbackContext):
 
         # create a new transaction
         transaction = Transactions(user_id=user_id, amount=amount)
-        await sync_to_async(transaction.save)()
+        await sync_to_async(transaction.save, thread_sensitive=True)()
         transaction.transaction_code = transaction.id + 1_000_000
-        await sync_to_async(transaction.save)()
+        await sync_to_async(transaction.save, thread_sensitive=True)()
 
         if not bot_username:
             bot_username = context.bot.username
@@ -401,7 +368,7 @@ async def product_categories(query: CallbackQuery):
     usr_lng = await user_language(query.from_user.id)
 
     # Fetch categories asynchronously
-    categories = await sync_to_async(list)(Category.objects.all())
+    categories = await sync_to_async(list, thread_sensitive=True)(Category.objects.all())
 
     if not categories:
         await query.edit_message_text(text=texts[usr_lng]["textNotFound"],
@@ -440,7 +407,7 @@ async def products(query: CallbackQuery):
         return
 
     # Fetch products asynchronously
-    all_products = await sync_to_async(list)(Product.objects.filter(category__id=cat_id))
+    all_products = await sync_to_async(list, thread_sensitive=True)(Product.objects.filter(category__id=cat_id))
 
     if not all_products:
         await query.edit_message_text(text=texts[usr_lng]["textNoProductFound"],
@@ -468,7 +435,8 @@ async def products(query: CallbackQuery):
         temp_reply_markup = InlineKeyboardMarkup(temp_keys)
 
         # Get category name
-        current_cat: Category = await sync_to_async(Category.objects.filter(id=cat_id, is_delete=False).first)()
+        current_cat: Category = await sync_to_async(Category.objects.filter(id=cat_id, is_delete=False).first,
+                                                    thread_sensitive=True)()
         cat_name = ""
         if current_cat:
             cat_name = await get_name(usr_lng, current_cat) + " "
@@ -494,8 +462,7 @@ async def product_payment_detail(query: CallbackQuery):
     product_detail = await sync_to_async(
         ProductDetail.objects.filter(
             product_id=prod_id, is_purchased=False
-        ).select_related('product__category').first
-    )()
+        ).select_related('product__category').first, thread_sensitive=True)()
 
     if not product_detail:
         await query.answer(texts[usr_lng]["textProductSoldOut"], show_alert=True)
@@ -534,7 +501,8 @@ async def payment(update: Update, context: CallbackContext, query: CallbackQuery
         await query.answer(texts[usr_lng]["textInvalidPaymentAmount"], show_alert=True)
         return
 
-    current_user = await sync_to_async(UserData.objects.filter(id=update.effective_user.id).first)()
+    current_user = await sync_to_async(UserData.objects.filter(id=update.effective_user.id).first,
+                                       thread_sensitive=True)()
 
     if not current_user:
         await query.answer(text=texts[usr_lng]["textNotUser"], show_alert=True)
@@ -544,7 +512,7 @@ async def payment(update: Update, context: CallbackContext, query: CallbackQuery
         return
 
     product: ProductDetail = await sync_to_async(
-        ProductDetail.objects.filter(product_id=prod_id, is_purchased=False).first)()
+        ProductDetail.objects.filter(product_id=prod_id, is_purchased=False).first, thread_sensitive=True)()
 
     if not product:
         await query.answer(text=texts[usr_lng]["textProductSoldOut"], show_alert=True)
@@ -556,8 +524,10 @@ async def payment(update: Update, context: CallbackContext, query: CallbackQuery
         product.buyer = current_user
         product.purchase_date = timezone.now()
 
-        await sync_to_async(product.save)()  # first update product detail
-        await sync_to_async(current_user.save)()  # then update balance
+        # first update product detail
+        await sync_to_async(product.save, thread_sensitive=True)()
+        # then update balance
+        await sync_to_async(current_user.save, thread_sensitive=True)()
 
         await send_message_with_retry(bot=context.bot,
                                       chat_id=update.effective_chat.id,
@@ -625,7 +595,7 @@ async def delete_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
 async def user_language(user_id: int, cache: bool = True):
     date_now = timezone.now().date()
     if user_id not in language_cache or not cache:
-        user = await sync_to_async(UserData.objects.filter(id=user_id).first)()
+        user = await sync_to_async(UserData.objects.filter(id=user_id).first, thread_sensitive=True)()
         if not user:
             language_cache[user_id] = (lang1, date_now)
             return lang1
@@ -639,7 +609,7 @@ async def user_language(user_id: int, cache: bool = True):
         return language_cache[user_id][0]
 
 
-async def send_message_with_retry(bot, chat_id, text, retry=5):
+async def send_message_with_retry(bot, chat_id, text, retry=3):
     for attempt in range(retry):
         try:
             return await bot.send_message(chat_id=chat_id, text=text)
@@ -647,7 +617,8 @@ async def send_message_with_retry(bot, chat_id, text, retry=5):
             if attempt < retry - 1:
                 await asyncio.sleep(2 ** attempt)  # Exponential backoff
             else:
-                logger.error(f"Failed to send message after {retry} attempts: {e}")
+                logger.error(
+                    f"Failed to send message after {retry} attempts: {e}")
                 return None
 
 
@@ -656,20 +627,24 @@ def main() -> None:
     app = Application.builder().token(token).build()
 
     handlers = [
-        CommandHandler("start", start_menu),  # Check account or create only here
+        # Check account or create only here
+        CommandHandler("start", start_menu),
         CommandHandler("menu", start_menu),
         CommandHandler("balance", user_balance),
         ConversationHandler(
             entry_points=[
                 CommandHandler("deposit", deposit_money),
-                CallbackQueryHandler(deposit_money_from_callback, pattern=f"^{deposit_cb}$"),
+                CallbackQueryHandler(
+                    deposit_money_from_callback, pattern=f"^{deposit_cb}$"),
             ],
             states={
                 ENTER_AMOUNT: [MessageHandler(filters.TEXT & ~filters.COMMAND, capture_amount)],
             },
             fallbacks=[
                 CommandHandler("cancel", cancel_back_to_menu),
-                CallbackQueryHandler(cancel_back_to_menu, pattern=f"^{main_menu_cb}$"),  # For callback button
+                # For callback button
+                CallbackQueryHandler(cancel_back_to_menu,
+                                     pattern=f"^{main_menu_cb}$"),
             ],
         ),
         MessageHandler(filters.TEXT, delete_message),  # Performance issue
