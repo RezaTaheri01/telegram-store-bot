@@ -1,2 +1,16 @@
-# Auto detect text files and perform LF normalization
 * text=auto
+
+# *.css linguist-vendored
+# *.js linguist-vendored
+# *.scss linguist-vendored
+# *.less linguist-vendored
+
+static/admin/**/*.css linguist-vendored
+static/admin/**/*.js linguist-vendored
+static/admin/**/*.scss linguist-vendored
+static/admin/**/*.less linguist-vendored
+
+static/modeltranslation/**/*.css linguist-vendored
+static/modeltranslation/**/*.js linguist-vendored
+static/modeltranslation/**/*.scss linguist-vendored
+static/modeltranslation/**/*.less linguist-vendored
