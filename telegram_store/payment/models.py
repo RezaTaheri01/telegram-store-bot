@@ -9,7 +9,8 @@ from bot_settings import valid_link_in_seconds
 # Todo: Add tracking code
 class Transactions(models.Model):
     user = models.ForeignKey(to=UserData, on_delete=models.CASCADE, verbose_name="User")
-    transaction_code = models.IntegerField(unique=True, blank=True, null=True)
+    transaction_code = models.CharField(max_length=32, unique=True, null=True, blank=True)
+    tracking_code = models.CharField(max_length=32, unique=True, null=True, blank=True)  # from psp
     amount = models.IntegerField()
     paid_time = models.DateTimeField(null=True, blank=True)
     is_paid = models.BooleanField(default=False)
