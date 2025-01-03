@@ -1,6 +1,7 @@
 from django.db import models
 from users.models import UserData
 from encrypted_json_fields.fields import EncryptedCharField
+from telegram_store.settings import LANGUAGES
 
 
 # Create your models here.
@@ -18,16 +19,26 @@ class Category(models.Model):
 
 class Product(models.Model):
     category = models.ForeignKey(to=Category, on_delete=models.SET_NULL, null=True, verbose_name="Category")
-    name = models.CharField(max_length=32, verbose_name="Product Name", unique=True, null=False)
+    name = models.CharField(max_length=32, verbose_name="Product Name", null=False)  # unique base on category
     price = models.IntegerField(verbose_name="Product Price")
     is_delete = models.BooleanField(default=False, blank=True)
 
     class Meta:
         verbose_name = "Product"
         verbose_name_plural = "Products"
+        # unique base on category constraints
+        constraints = [
+            models.UniqueConstraint(
+                fields=["category", f"name_{lang[0]}"],  # Use the language code from LANGUAGES
+                name=f"unique_name_{lang[0]}_per_category"
+            )
+            for lang in LANGUAGES  # Iterate through LANGUAGES defined in settings
+        ]
 
     def __str__(self):
-        return f"{self.name}({self.category.name})"
+        if self.category:
+            return f"{self.name}({self.category.name})"
+        return f"{self.name}"
 
 
 class ProductDetail(models.Model):
@@ -45,4 +56,6 @@ class ProductDetail(models.Model):
         verbose_name_plural = "Products Detail"
 
     def __str__(self):
-        return self.product.name
+        if self.product:
+            return self.product.name
+        return "None"
