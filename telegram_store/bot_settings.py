@@ -1,9 +1,12 @@
-""" To add more languages:
-1. update line 109 of telegram_store/setting.py like others
-2. add lang<number> below and update texts dictionary
-3. run "python manage.py makemigrations payment users products"
-4. "python manage.py migrate"
-5. In domain/admin fill your new fields on products category and product
+"""
+Steps to add a new language:(also you can remove language by these steps)
+
+1. Update line 109 in `telegram_store/settings.py` to include the new language, following the format used for existing entries.
+2. Add the `lang<num>` entry below and ensure the `texts` dictionary reflects the new language.
+3. Run the following commands to apply migrations:
+   a. `python manage.py makemigrations payment users products`
+   b. `python manage.py migrate`
+4. In the domain admin panel, populate the new fields for product categories and products with the appropriate data for the new language.
 """
 
 from telegram import InlineKeyboardButton, InlineKeyboardMarkup
@@ -12,7 +15,7 @@ categories_in_row = 2  # number of categories in row
 products_in_row = 2  # number of products in row
 number_of_transaction = 10  # number of transactions in transactions list
 valid_link_in_seconds = 1800  # 30 minutes
-time_zone = "UTC" # base on TIME_ZONE in telegram_store/setting.py
+time_zone = "UTC"  # base on TIME_ZONE in telegram_store/setting.py
 
 # lang1 is your primary language
 lang1, lang2, lang3 = "en", "fa", "du"  # base on languages in telegram_store/setting.py
