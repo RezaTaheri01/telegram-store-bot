@@ -1,4 +1,4 @@
-# Todo: Celery for handling this section and payback for failed transition save
+# Todo: Celery for handling this section and payback if transaction saving failed
 
 import asyncio
 from telegram import Bot
@@ -30,7 +30,7 @@ async def send_message(bot: Bot, chat_id: str, message: str, retry=3):
                 await asyncio.sleep(2 ** attempt)  # Exponential backoff
             else:
                 logger.error(f"Failed to send message after {retry} attempts: {e}")
-                return None
+                return
 
 
 def _user_language_sync(user_id: int):
