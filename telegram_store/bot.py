@@ -187,7 +187,7 @@ async def account_transactions(query: CallbackQuery) -> None:
     user_id = query.from_user.id
     usr_lng = await user_language(user_id)
     try:
-        # Fetch the last 10 items ordered by -paid_time
+        # Fetch the last 10 items ordered by -paid_time(numbers is base on number_of_transaction in bot_settings.py)
         user_transaction: Transactions = await sync_to_async(
             lambda: list(
                 Transactions.objects.filter(user_id=user_id, is_paid=True)
@@ -204,9 +204,10 @@ async def account_transactions(query: CallbackQuery) -> None:
         for t in user_transaction:
             # Format paid_time using strftime
             formatted_time = t.paid_time.strftime("%Y-%m-%d %H:%M:%S")
-            result_data += texts[usr_lng]["textTransactionDetail"].format(t.amount,
-                                                                          texts[usr_lng]["textPriceUnit"],
-                                                                          formatted_time)
+            result_data += t.transaction_code + "\n" + texts[usr_lng]["textTransactionDetail"].format(
+                t.amount,
+                texts[usr_lng]["textPriceUnit"],
+                formatted_time + " " + time_zone)
 
         await query.edit_message_text(text=result_data, reply_markup=buttons[usr_lng]["back_to_acc_markup"])
 
@@ -311,7 +312,7 @@ async def capture_amount(update: Update, context: CallbackContext):
         # create a new transaction
         transaction = Transactions(user_id=user_id, amount=amount)
         await sync_to_async(transaction.save, thread_sensitive=True)()
-        transaction.transaction_code = transaction.id + 1_000_000
+        transaction.transaction_code = str(transaction.id + 1_000_000)
         await sync_to_async(transaction.save, thread_sensitive=True)()
 
         if not bot_username:
