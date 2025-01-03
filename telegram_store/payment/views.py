@@ -67,7 +67,7 @@ class PaymentView(View):
             transaction_code = request.POST.get('transaction')
 
             # Call synchronous function to charge the account
-            res = charge_account(user_id, chat_id, amount, int(transaction_code))
+            res = charge_account(user_id, chat_id, amount, transaction_code)
             if res:
                 status = "success"
 
