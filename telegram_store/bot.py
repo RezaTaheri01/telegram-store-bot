@@ -354,8 +354,8 @@ async def cancel_back_to_menu(update: Update, context: CallbackContext):
 
 # region Products
 async def get_name(user_lang: str, current_object) -> str:
-    current_name = current_object.name  # default is first language "en"
     try:
+        current_name = current_object.name  # default is first language "en"
         if user_lang != lang1:  # name_<your language from setting.py>
             current_name = eval(f"current_object.name_{user_lang}")
             if not current_name:
@@ -363,9 +363,9 @@ async def get_name(user_lang: str, current_object) -> str:
                     f"name {current_object.name} for language {user_lang} not founded return {current_object.name}")
                 return current_object.name
         return current_name
-    except:
+    except:  # return main name field
         logger.error("language not founded return name base on lang1")
-        return current_object.name
+        return current_object.name or "None"
 
 
 async def product_categories(query: CallbackQuery):
