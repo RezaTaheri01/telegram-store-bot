@@ -63,7 +63,7 @@ def _charge_account_in_atomic_block(user_id, amount, transaction_code):
         transaction.mark_as_paid()
 
 
-def charge_account(user_id: str, chat_id: str, amount: int, transaction_code: int) -> bool:
+def charge_account(user_id: str, chat_id: str, amount: int, transaction_code: str) -> bool:
     try:
         user_id = int(user_id)
 
