@@ -290,6 +290,7 @@ async def deposit_money_from_callback(update: Update, context: CallbackContext):
     return ENTER_AMOUNT
 
 
+# Todo: pass payment url just a token and on view fetch info from database
 async def capture_amount(update: Update, context: CallbackContext):
     global bot_username
     # await context.bot.delete_message(update.effective_chat.id, update.effective_message.id - 1)
