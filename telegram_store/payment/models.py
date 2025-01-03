@@ -25,8 +25,8 @@ class Transactions(models.Model):
                 name='amount_positive'
             )
         ]
-        verbose_name_plural = "Transactions"
         verbose_name = "Transaction"
+        verbose_name_plural = "Transactions"
 
     def mark_as_paid(self):
         self.is_paid = True
@@ -35,7 +35,7 @@ class Transactions(models.Model):
 
     def is_expired(self):
         if (timezone.now() - self.created_date).total_seconds() > valid_link_in_seconds:  # check bot_settings.py
-            self.is_delete = True
+            self.is_delete = True  # soft delete
             self.save()
             return True
         return False
