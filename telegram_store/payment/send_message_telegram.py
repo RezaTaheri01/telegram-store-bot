@@ -1,4 +1,4 @@
-# Todo: Celery for handling this section
+# Todo: Celery for handling this section and payback for failed transition save
 
 import asyncio
 from telegram import Bot
