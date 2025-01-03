@@ -12,6 +12,7 @@ categories_in_row = 2  # number of categories in row
 products_in_row = 2  # number of products in row
 number_of_transaction = 10  # number of transactions in transactions list
 valid_link_in_seconds = 1800  # 30 minutes
+time_zone = "UTC" # base on TIME_ZONE in telegram_store/setting.py
 
 # lang1 is your primary language
 lang1, lang2, lang3 = "en", "fa", "du"  # base on languages in telegram_store/setting.py
