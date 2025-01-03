@@ -112,6 +112,7 @@ LANGUAGES = [
     ('en', 'English'),
     ('du', 'German'),
 ]
+MODELTRANSLATION_LANGUAGES = ('fa', 'en', 'du')  # Same as LANGUAGES
 
 LANGUAGE_CODE = 'en-us'
 
