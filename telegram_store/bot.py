@@ -491,6 +491,7 @@ async def product_payment_detail(query: CallbackQuery):
         )
     except Exception as e:
         # await query.edit_message_text(textError, reply_markup=back_menu_markup)
+        await query.answer(texts[usr_lng]["textNotFound"], show_alert=True)
         logger.error(f"Error in product_payment_detail function: {e}")
 
 
