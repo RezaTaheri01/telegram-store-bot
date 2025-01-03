@@ -148,9 +148,8 @@ async def user_balance_from_call_back(update: Update, query: CallbackQuery) -> N
 # endregion
 
 
-# Todo: function that return purchased products
+# Todo: function that return purchased products with pagination
 # region Manage account
-
 async def account_menu_call_back(query: CallbackQuery):
     usr_lng = await user_language(query.from_user.id)
     full_name = f"{query.from_user.first_name or ''} {query.from_user.last_name or ''}".strip()
@@ -186,30 +185,91 @@ async def account_info(query: CallbackQuery) -> None:
 async def account_transactions(query: CallbackQuery) -> None:
     user_id = query.from_user.id
     usr_lng = await user_language(user_id)
+
     try:
-        # Fetch the last 10 items ordered by -paid_time(numbers is base on number_of_transaction in bot_settings.py)
-        user_transaction: Transactions = await sync_to_async(
+        temp: list = query.data.split('_')
+        if len(temp) == 1:
+            start_index = 0
+        else:
+            # Extract start index from callback data
+            start_index: int = int(query.data.split('_')[1])
+            if start_index < 0:
+                return
+
+    except (IndexError, ValueError):
+        await query.answer(texts[usr_lng]["textNotFound"], show_alert=True)
+        return
+
+    try:
+        # Fetch transactions and total count
+        user_transaction: list = await sync_to_async(
             lambda: list(
                 Transactions.objects.filter(user_id=user_id, is_paid=True)
-                .order_by('-paid_time')[:number_of_transaction]
+                .order_by('-paid_time')[start_index:start_index + number_of_transaction]
             ), thread_sensitive=True
+        )()
+        total_transactions = await sync_to_async(
+            lambda: Transactions.objects.filter(user_id=user_id, is_paid=True).count()
         )()
 
         if not user_transaction:
-            await query.edit_message_text(text=texts[usr_lng]["textNoTransaction"],
-                                          reply_markup=buttons[usr_lng]["back_to_acc_markup"])
+            if start_index == 0:
+                await query.edit_message_text(
+                    text=texts[usr_lng]["textNoTransaction"],
+                    reply_markup=buttons[usr_lng]["back_to_acc_markup"]
+                )
             return
 
-        result_data = texts[usr_lng]["textTransaction"]
+        # Calculate page info
+        current_page = start_index // number_of_transaction + 1
+        total_pages = (total_transactions + number_of_transaction - 1) // number_of_transaction
+
+        # Page number
+        result_data = texts[usr_lng]["textTransaction"].format(current_page)
+        result_data += "\n\n"
         for t in user_transaction:
             # Format paid_time using strftime
             formatted_time = t.paid_time.strftime("%Y-%m-%d %H:%M:%S")
             result_data += t.transaction_code + "\n" + texts[usr_lng]["textTransactionDetail"].format(
                 t.amount,
                 texts[usr_lng]["textPriceUnit"],
-                formatted_time + " " + time_zone)
+                formatted_time + " " + time_zone
+            )
 
-        await query.edit_message_text(text=result_data, reply_markup=buttons[usr_lng]["back_to_acc_markup"])
+        # Pagination buttons
+        transactions_keys = []
+
+        # Add "Previous" button only if there is a previous page
+        if start_index > 0:
+            transactions_keys.append(
+                InlineKeyboardButton(
+                    texts[usr_lng]["textPrev"],
+                    callback_data=f"{transactions_cb}_{start_index - number_of_transaction}"
+                )
+            )
+
+        # Add "Next" button only if there is a next page
+        if start_index + number_of_transaction < total_transactions:
+            transactions_keys.append(
+                InlineKeyboardButton(
+                    texts[usr_lng]["textNext"],
+                    callback_data=f"{transactions_cb}_{start_index + number_of_transaction}"
+                )
+            )
+
+        # Add buttons for account and main menu navigation
+        navigation_buttons = [
+            [InlineKeyboardButton(texts[usr_lng]["buttonAccount"], callback_data=account_menu_cb)],
+            [InlineKeyboardButton(texts[usr_lng]["buttonBackMainMenu"], callback_data=main_menu_cb)]
+        ]
+
+        # Combine all buttons
+        if transactions_keys:
+            transactions_markup = InlineKeyboardMarkup([transactions_keys] + navigation_buttons)
+        else:
+            transactions_markup = InlineKeyboardMarkup(navigation_buttons)
+
+        await query.edit_message_text(text=result_data, reply_markup=transactions_markup)
 
     except Exception as e:
         logger.error(f"Error in account_info function: {e}")
@@ -558,14 +618,14 @@ async def callback_query_handler(update: Update, context: CallbackContext) -> No
         await user_balance_from_call_back(update, query)
     elif query_data == account_menu_cb:  # Account Menu
         await account_menu_call_back(query)
-    elif query_data == transactions_cb:  # User Transactions
-        await account_transactions(query)
     elif query_data == account_info_cb:  # User Account Info
         await account_info(query)
     elif query_data == categories_cb:  # Product Categories
         await product_categories(query)
     elif query_data == change_lang_cb:  # Product Categories
         await change_user_language(query)
+    elif query_data.startswith(transactions_cb):  # User Transactions
+        await account_transactions(query)
     elif query_data.startswith(f"{select_category_cb}_"):  # Selected category
         await products(query)
     elif query_data.startswith(f"{select_product_cb}_"):  # Selected product
