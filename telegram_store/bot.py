@@ -182,6 +182,7 @@ async def account_info(query: CallbackQuery) -> None:
         reply_markup=buttons[usr_lng]["back_to_acc_markup"])
 
 
+# Todo: Get user current time(24h format) and save the difference in db
 async def account_transactions(query: CallbackQuery) -> None:
     user_id = query.from_user.id
     usr_lng = await user_language(user_id)
@@ -327,8 +328,7 @@ async def change_user_language(query: CallbackQuery):
 # endregion
 
 
-# region ConversationHandler
-# Deposit money conversation handler
+# region ConversationHandler get amount
 
 
 async def deposit_money(update: Update, context: CallbackContext):
