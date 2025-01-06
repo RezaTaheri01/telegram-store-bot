@@ -182,7 +182,7 @@ async def account_info(query: CallbackQuery) -> None:
         reply_markup=buttons[usr_lng]["back_to_acc_markup"])
 
 
-# Todo: Get user current time(24h format) and save the difference in database
+# Todo: get user current time(24h format) and save the difference in database
 async def account_transactions(query: CallbackQuery) -> None:
     user_id = query.from_user.id
     usr_lng = await user_language(user_id)
@@ -461,7 +461,7 @@ async def product_categories(query: CallbackQuery):
         logger.error(f"Error in payment function: {e}")
 
 
-# Todo: Show available product only
+# Todo: show available product only
 async def products(query: CallbackQuery):
     usr_lng = await user_language(query.from_user.id)
     try:
@@ -720,7 +720,7 @@ def main() -> None:
     app.add_handlers(handlers)
 
     app.add_error_handler(error_handler)
-
+    # Todo: use webhook
     app.run_polling()
 
 
