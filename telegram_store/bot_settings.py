@@ -10,6 +10,7 @@ Steps to add a new language:(also you can remove language by these steps)
 """
 
 from telegram import InlineKeyboardButton, InlineKeyboardMarkup
+from decouple import config
 
 categories_in_row = 2  # number of categories in row
 products_in_row = 2  # number of products in row
@@ -21,7 +22,7 @@ time_zone = "UTC"  # base on TIME_ZONE in telegram_store/setting.py
 lang1, lang2, lang3 = "en", "fa", "du"  # base on languages in telegram_store/setting.py
 
 # modify payment_url your base on your domain, just this part(http://127.0.0.1:8000)
-payment_url = "http://127.0.0.1:8000/payment/confirm/?chat_id={}&user_id={}&amount={}&bot_link={}&transaction={}"
+payment_url = config("PAYMENT_URL") + "/payment/confirm/?chat_id={}&user_id={}&amount={}&bot_link={}&transaction={}"
 bot_link = "https://t.me/{}"  # bot username
 
 # region Multi language texts
