@@ -11,6 +11,7 @@ https://docs.djangoproject.com/en/5.1/ref/settings/
 """
 
 from pathlib import Path
+from decouple import config
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -19,12 +20,12 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 # See https://docs.djangoproject.com/en/5.1/howto/deployment/checklist/
 
 # SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = 'django-insecure-$kp!7e*2sv#%i%=qq(-#pspemkli#ruf_5i04(2q+eeoae_+2h'
+SECRET_KEY = config("SECRET_KEY", default='django-insecure-$kp!7e*2sv#%i%=qq(-#pspemkli#ruf_5i04(2q+eeoae_+2h')
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = True
+DEBUG = config("DEBUG", default=False)
 
-ALLOWED_HOSTS = []
+ALLOWED_HOSTS = config("ALLOWED_HOSTS").split(",")
 
 # Application definition
 
@@ -137,4 +138,4 @@ STATIC_ROOT = BASE_DIR / 'production_files'
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
-EJF_ENCRYPTION_KEYS = '6-QgONW6TUl5rt4Xq8u-wBwPcb15sIYS2CN6d69zueM='
+EJF_ENCRYPTION_KEYS = config("ENCRYPTION_KEYS", default="6-QgONW6TUl5rt4Xq8u-wBwPcb15sIYS2CN6d69zueM=")
