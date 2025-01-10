@@ -1,4 +1,3 @@
-
 # Telegram Bot with Django Integration 📢💻
 
 This bot is a Python-based Telegram bot seamlessly integrated with a Django backend. It supports database management, payment handling, digital product selling, and dynamic user interactions.
@@ -47,10 +46,6 @@ This bot is a Python-based Telegram bot seamlessly integrated with a Django back
   - `Category`, `Product`, `ProductDetail`: Manages products and their details. 🛠️
   - `ProductDetail`: The field detail that contain product info is encrypted 🔒 by ([django-encrypted-json-fields](https://pypi.org/project/django-encrypted-json-fields/))
 
-- **Payment Processing**:
-  - Dynamically creates payment links. 🔗
-  - Updates the database after payment confirmation.
-
 ---
 
 ## Installation ⚙️
@@ -78,18 +73,20 @@ This bot is a Python-based Telegram bot seamlessly integrated with a Django back
    pip install -r req.txt
    ```
 
-3. **Configure Django Settings**:
-   - Set the `telegram_store.settings` module:
-     - Change `EJF_ENCRYPTION_KEYS` and `SECRET_KEY`
-   - Configure your database in `settings.py`.
+   
+3. **Configure the `.env` File**:  
+   Create a `.env` file in the project root and populate it with the following sample values:  
+   ```env
+   TOKEN=your-telegram-api-token   
+   SECRET_KEY=django-insecure-$kp!7e*2sv#%i%=qq(-#pspemkli#ruf_5i04(2q+eeoae_+2h
+   # Encrypting detail field with this key
+   ENCRYPTION_KEYS=6-QgONW6TUl5rt4Xq8u-wBwPcb15sIYS2CN6d69zueM=  
+   DEBUG=True
+   ALLOWED_HOSTS=localhost,127.0.0.1,your-domain.com
+   PAYMENT_URL=http://127.0.0.1:8000
+   ```
 
-4. **Set Up Environment Variables**:
-   - Create a `.env` file in the root directory with the following structure:
-     ```env
-     TOKEN=<your-telegram-bot-token>
-     ```
-
-5. **Migrate the Database** and  **Create Super User**:
+4. **Migrate the Database** and  **Create Super User**:
    ```bash
    python manage.py makemigrations payment users products
    ```
@@ -102,12 +99,12 @@ This bot is a Python-based Telegram bot seamlessly integrated with a Django back
    ```
    
 
-6. **Run the Django Development Server**:
+5. **Run the Django Development Server**:
    ```bash
    python manage.py runserver
    ```
 
-7. **Run the Telegram Bot**:
+6. **Run the Telegram Bot**:
    ```bash
    python bot.py
    ```
@@ -148,7 +145,7 @@ This bot is a Python-based Telegram bot seamlessly integrated with a Django back
 
 #### Error Handling 🛠️
 
-- Logs all errors to `logs.log`.
+- Logs all errors to `bot_logs.log`.
 - Notifies users of issues without disrupting the bot experience. ⚠️
 
 ---
@@ -157,7 +154,7 @@ This bot is a Python-based Telegram bot seamlessly integrated with a Django back
 
 - **Link Format**:
   ```
-  http://127.0.0.1:8000/payment/confirm/?chat_id={chat_id}&user_id={user_id}&amount={amount}&bot_link={bot_link}&transaction={transaction}
+  PAYMENT_URL + /payment/confirm/?chat_id={chat_id}&user_id={user_id}&amount={amount}&bot_link={bot_link}&transaction={transaction}
   ```
 - Redirects users to a Django view for payment processing.
 
@@ -184,14 +181,14 @@ This bot is a Python-based Telegram bot seamlessly integrated with a Django back
 
 ## Logs 🔍
 
-- All errors are logged in `logs.log` with detailed messages. 📄
+- All errors are logged in `bot_logs.log` with detailed messages. 📄
 
 ---
 
 ## Notes 📊
 
 - Ensure the Django server is running for smooth payment processing. ⚙️
-- Update the `payment_url` in the bot code to match your server’s address when deploying. 🔗
+- Update the `PAYMENT_URL`, `ALLOWED_HOSTS` in the .env to match your server’s address when deploying. 🔗
 
 ---
 
