@@ -226,7 +226,7 @@ async def account_transactions(query: CallbackQuery) -> None:
         total_pages = (total_transactions + number_of_transaction - 1) // number_of_transaction
 
         # Page number
-        result_data = texts[usr_lng]["textTransaction"].format(current_page)
+        result_data = texts[usr_lng]["textTransaction"].format(f'{current_page}/{total_pages}')
         result_data += "\n\n"
         for t in user_transaction:
             # Format paid_time using strftime
@@ -720,7 +720,6 @@ def main() -> None:
     app.add_handlers(handlers)
 
     app.add_error_handler(error_handler)
-    # Todo: use webhook
     app.run_polling()
 
 
