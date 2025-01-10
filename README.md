@@ -1,4 +1,3 @@
-
 # Telegram Bot with Django Integration 📢💻
 
 This bot is a Python-based Telegram bot seamlessly integrated with a Django backend. It supports database management, payment handling, digital product selling, and dynamic user interactions.
@@ -46,10 +45,6 @@ This bot is a Python-based Telegram bot seamlessly integrated with a Django back
   - `Transaction`: Tracks payment transactions. 📋
   - `Category`, `Product`, `ProductDetail`: Manages products and their details. 🛠️
   - `ProductDetail`: The field detail that contain product info is encrypted 🔒 by ([django-encrypted-json-fields](https://pypi.org/project/django-encrypted-json-fields/))
-
-- **Payment Processing**:
-  - Dynamically creates payment links. 🔗
-  - Updates the database after payment confirmation.
 
 ---
 
@@ -150,7 +145,7 @@ This bot is a Python-based Telegram bot seamlessly integrated with a Django back
 
 #### Error Handling 🛠️
 
-- Logs all errors to `logs.log`.
+- Logs all errors to `bot_logs.log`.
 - Notifies users of issues without disrupting the bot experience. ⚠️
 
 ---
@@ -186,14 +181,14 @@ This bot is a Python-based Telegram bot seamlessly integrated with a Django back
 
 ## Logs 🔍
 
-- All errors are logged in `logs.log` with detailed messages. 📄
+- All errors are logged in `bot_logs.log` with detailed messages. 📄
 
 ---
 
 ## Notes 📊
 
 - Ensure the Django server is running for smooth payment processing. ⚙️
-- Update the `payment_url` in the bot code to match your server’s address when deploying. 🔗
+- Update the `PAYMENT_URL`, `ALLOWED_HOSTS` in the .env to match your server’s address when deploying. 🔗
 
 ---
 
