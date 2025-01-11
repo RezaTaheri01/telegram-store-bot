@@ -117,14 +117,6 @@ This bot is a Python-based Telegram bot seamlessly integrated with a Django back
 
 #### Key Features
 
-- **Imports**:
-  - `Django`: Sets up the Django environment for database operations.
-  - `telegram.ext`: Facilitates bot creation and updates handling.
-
-- **Global Variables**:
-  - `main_menu_keys`: Defines the main menu layout.
-  - `textStart`, `textBalance`, etc.: Predefined messages for user interactions.
-
 - **Core Functions**:
   - `start_menu`: Displays the main menu. 🌐
   - `change_language`: Allows users to change their language and updates the `UserData` language field. 🌎
