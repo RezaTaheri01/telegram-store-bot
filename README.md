@@ -88,7 +88,7 @@ This bot is a Python-based Telegram bot seamlessly integrated with a Django back
 
 4. **Migrate the Database** and  **Create Super User**:
    ```bash
-   python manage.py makemigrations payment users products
+   python manage.py makemigrations users payment products
    ```
    ```bash
    python manage.py migrate
