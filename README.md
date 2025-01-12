@@ -41,7 +41,7 @@ This bot is a Python-based Telegram bot seamlessly integrated with a Django back
 ### Django Backend 📚
 
 - **Database Models**:
-  - `UserData`: Manages user account information. By default, the language is set to English (`en`). If your primary language isn’t English, update this in `bot_settings.py` and the database model.
+  - `UserData`: Manages user account information. By default, the language is set to English (`en`). If your primary language isn’t English, update this in `bot_settings.py`.
   - `Transaction`: Tracks payment transactions. 📋
   - `Category`, `Product`, `ProductDetail`: Manages products and their details. 🛠️
   - `ProductDetail`: The field detail that contain product info is encrypted 🔒 by ([django-encrypted-json-fields](https://pypi.org/project/django-encrypted-json-fields/))
