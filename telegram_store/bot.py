@@ -347,7 +347,7 @@ async def user_purchase_products(query: CallbackQuery) -> None:
             products_keys.append(
                 InlineKeyboardButton(
                     texts[usr_lng]["textNext"],
-                    callback_data=f"{transactions_cb}_{start_index + number_of_transaction}"
+                    callback_data=f"{purchase_products_cb}_{start_index + number_of_products}"
                 )
             )
 
@@ -359,11 +359,11 @@ async def user_purchase_products(query: CallbackQuery) -> None:
 
         # Combine all buttons
         if products_keys:
-            transactions_markup = InlineKeyboardMarkup([products_keys] + navigation_buttons)
+            products_markup = InlineKeyboardMarkup([products_keys] + navigation_buttons)
         else:
-            transactions_markup = InlineKeyboardMarkup(navigation_buttons)
+            products_markup = InlineKeyboardMarkup(navigation_buttons)
 
-        await query.edit_message_text(text=result_data, reply_markup=transactions_markup)
+        await query.edit_message_text(text=result_data, reply_markup=products_markup)
 
     except Exception as e:
         logger.error(f"Error in account_info function: {e}")
