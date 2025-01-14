@@ -83,7 +83,7 @@ This bot is a Python-based Telegram bot seamlessly integrated with a Django back
    ENCRYPTION_KEYS=6-QgONW6TUl5rt4Xq8u-wBwPcb15sIYS2CN6d69zueM=  
    DEBUG=True
    ALLOWED_HOSTS=localhost,127.0.0.1,your-domain.com
-   PAYMENT_URL=http://127.0.0.1:8000
+   PAYMENT_DOMAIN=http://127.0.0.1:8000
    ```
 
 4. **Migrate the Database** and  **Create Super User**:
