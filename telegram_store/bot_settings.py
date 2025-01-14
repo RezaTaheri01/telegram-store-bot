@@ -41,7 +41,7 @@ texts = {
         "textPaymentLink": f"Your payment link is ready and it's valid for {valid_link_in_seconds // 60} minutes",
         "textNoTransaction": "No transactions were found",
         "textTransaction": "Here are your transactions, page {}:",
-        "textProducts": "Here are your purchase products, page {}:",
+        "textProducts": "Here are your purchases, page {}:",
         "textAccountMenu": "Hey {}! Please choose from below",  # username
         "textAccInfo": "Username: {}\nFull name: {}\nBalance: {} {}",  # username, full name, balance
         "textNotUser": "User not found",
