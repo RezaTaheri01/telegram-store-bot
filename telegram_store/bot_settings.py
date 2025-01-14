@@ -15,7 +15,7 @@ from decouple import config
 categories_in_row = 2  # number of categories in row
 products_in_row = 2  # number of products in row
 number_of_transaction = 4  # number of transactions in transactions list
-number_of_products = 4  # number of products in purchase product list
+number_of_products = 2  # number of products in purchase product list
 valid_link_in_seconds = 1800  # 30 minutes
 time_zone = "UTC"  # base on TIME_ZONE in telegram_store/setting.py
 
