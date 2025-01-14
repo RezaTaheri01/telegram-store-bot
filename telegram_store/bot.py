@@ -308,7 +308,7 @@ async def user_purchase_products(query: CallbackQuery) -> None:
         if not user_products:
             if start_index == 0:
                 await query.edit_message_text(
-                    text=texts[usr_lng]["textNoTransaction"],
+                    text=texts[usr_lng]["textNotFound"],
                     reply_markup=buttons[usr_lng]["back_to_acc_markup"]
                 )
             return
