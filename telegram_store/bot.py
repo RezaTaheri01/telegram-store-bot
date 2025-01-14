@@ -148,7 +148,6 @@ async def user_balance_from_call_back(update: Update, query: CallbackQuery) -> N
 # endregion
 
 
-# Todo: function that return purchased products with pagination
 # region Manage account
 async def account_menu_call_back(query: CallbackQuery):
     usr_lng = await user_language(query.from_user.id)
@@ -267,6 +266,100 @@ async def account_transactions(query: CallbackQuery) -> None:
         # Combine all buttons
         if transactions_keys:
             transactions_markup = InlineKeyboardMarkup([transactions_keys] + navigation_buttons)
+        else:
+            transactions_markup = InlineKeyboardMarkup(navigation_buttons)
+
+        await query.edit_message_text(text=result_data, reply_markup=transactions_markup)
+
+    except Exception as e:
+        logger.error(f"Error in account_info function: {e}")
+
+
+async def user_purchase_products(query: CallbackQuery) -> None:
+    user_id = query.from_user.id
+    usr_lng = await user_language(user_id)
+
+    try:
+        temp: list = query.data.split('_')
+        if len(temp) == 1:
+            start_index = 0
+        else:
+            # Extract start index from callback data
+            start_index: int = int(query.data.split('_')[1])
+            if start_index < 0:
+                return
+
+    except (IndexError, ValueError):
+        await query.answer(texts[usr_lng]["textNotFound"], show_alert=True)
+        return
+
+    try:
+        # Fetch transactions and total count
+        user_products: list = await sync_to_async(
+            lambda: list(
+                ProductDetail.objects.filter(is_purchased=True, buyer__id=user_id, is_delete=False)
+                .order_by('-purchase_date').select_related('product')[start_index:start_index + number_of_products]
+            ), thread_sensitive=True
+        )()
+        total_purchase = await sync_to_async(
+            lambda: ProductDetail.objects.filter(is_purchased=True, buyer__id=user_id, is_delete=False).count()
+        )()
+
+        if not user_products:
+            if start_index == 0:
+                await query.edit_message_text(
+                    text=texts[usr_lng]["textNoTransaction"],
+                    reply_markup=buttons[usr_lng]["back_to_acc_markup"]
+                )
+            return
+
+        # Calculate page info
+        current_page = start_index // number_of_products + 1
+        total_pages = (total_purchase + number_of_products - 1) // number_of_products
+
+        # Page number
+        result_data = texts[usr_lng]["textProducts"].format(f'{current_page}/{total_pages}')
+        result_data += "\n\n"
+        for p in user_products:
+            product_name = await get_name(usr_lng, p.product)
+            # Format paid_time using strftime
+            formatted_time = p.purchase_date.strftime("%Y-%m-%d %H:%M:%S")
+            result_data += texts[usr_lng]["textProductDetailList"].format(
+                product_name,
+                formatted_time + " " + time_zone,
+                p.details,
+            )
+
+        # Pagination buttons
+        products_keys = []
+
+        # Add "Previous" button only if there is a previous page
+        if start_index > 0:
+            products_keys.append(
+                InlineKeyboardButton(
+                    texts[usr_lng]["textPrev"],
+                    callback_data=f"{purchase_products_cb}_{start_index - number_of_products}"
+                )
+            )
+
+        # Add "Next" button only if there is a next page
+        if start_index + number_of_products < total_purchase:
+            products_keys.append(
+                InlineKeyboardButton(
+                    texts[usr_lng]["textNext"],
+                    callback_data=f"{transactions_cb}_{start_index + number_of_transaction}"
+                )
+            )
+
+        # Add buttons for account and main menu navigation
+        navigation_buttons = [
+            [InlineKeyboardButton(texts[usr_lng]["buttonAccount"], callback_data=account_menu_cb)],
+            [InlineKeyboardButton(texts[usr_lng]["buttonBackMainMenu"], callback_data=main_menu_cb)]
+        ]
+
+        # Combine all buttons
+        if products_keys:
+            transactions_markup = InlineKeyboardMarkup([products_keys] + navigation_buttons)
         else:
             transactions_markup = InlineKeyboardMarkup(navigation_buttons)
 
@@ -626,6 +719,8 @@ async def callback_query_handler(update: Update, context: CallbackContext) -> No
         await change_user_language(query)
     elif query_data.startswith(transactions_cb):  # User Transactions
         await account_transactions(query)
+    elif query_data.startswith(purchase_products_cb):  # User Purchase Products
+        await user_purchase_products(query)
     elif query_data.startswith(f"{select_category_cb}_"):  # Selected category
         await products(query)
     elif query_data.startswith(f"{select_product_cb}_"):  # Selected product
