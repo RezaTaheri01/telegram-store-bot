@@ -439,6 +439,32 @@ async def change_user_language(query: CallbackQuery):
                                   reply_markup=buttons[user.language]['main_menu_markup'])
 
 
+async def get_user_location(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    usr_lng = await user_language(update.effective_user.id)
+    user_location = update.message.location
+    tf = timezonefinder.TimezoneFinder()
+    timezone_str = tf.timezone_at(lng=user_location.longitude, lat=user_location.latitude)
+
+    if timezone_str:
+        user_timezone = pytz_timezone(timezone_str)
+        now_in_user_timezone = datetime.now(user_timezone)
+
+        # Calculate timezone difference in hours (as a float) using .utcoffset()
+        timezone_offset = user_timezone.utcoffset(datetime.now()).total_seconds() / 3600
+
+        await update.message.reply_text(text=texts[usr_lng]["textTimezoneSuccess"])
+        await update.message.reply_text(f"Your timezone is: {timezone_str} {now_in_user_timezone}")
+        await update.message.reply_text(f"UTC Offset: {timezone_offset:.2f} hours")
+
+        # Update user timezone and offset
+        user = await sync_to_async(UserData.objects.filter(id=update.effective_user.id).first, thread_sensitive=True)()
+        user.utc_offset = timezone_offset  # Assuming `utc_offset` is a FloatField in your model
+        await sync_to_async(user.save, thread_sensitive=True)()
+
+    else:
+        await update.message.reply_text(text=texts[usr_lng]["textTimezoneFailed"])
+
+
 # endregion
 
 
