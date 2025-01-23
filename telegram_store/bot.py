@@ -440,7 +440,7 @@ async def change_user_language(query: CallbackQuery):
         user.language = lang1
 
     await sync_to_async(user.save, thread_sensitive=True)()
-    language_cache[user.id] = (user.language, timezone.now().date())
+    language_cache[user.id] = user.language
 
     await query.edit_message_text(text=texts[user.language]["textMenu"],
                                   reply_markup=buttons[user.language]['main_menu_markup'])
