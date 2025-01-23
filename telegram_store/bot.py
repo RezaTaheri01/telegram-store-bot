@@ -846,6 +846,7 @@ def main() -> None:
         CommandHandler("start", start_menu),
         CommandHandler("menu", start_menu),
         CommandHandler("balance", user_balance),
+        CommandHandler("timezone_set", timezone_hint),
         ConversationHandler(
             entry_points=[
                 CommandHandler("deposit", deposit_money),
@@ -863,6 +864,7 @@ def main() -> None:
             ],
         ),
         MessageHandler(filters.TEXT, delete_message),  # Performance issue
+        MessageHandler(filters.LOCATION, get_user_location),
         CallbackQueryHandler(callback_query_handler),
     ]
 
