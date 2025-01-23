@@ -61,6 +61,7 @@ bot_username = ""
 
 # Todo: implement aging for better memory usage
 language_cache: dict = {}
+timezone_cache: dict = {}
 
 
 # endregion
@@ -82,6 +83,20 @@ async def start_menu(update: Update, context: CallbackContext) -> None:  # activ
     except Exception as e:
         await update.message.reply_text(texts[usr_lng]["textError"], reply_markup=buttons[usr_lng]["main_menu_markup"])
         logger.error(f"Error in start_menu function: {e}")
+
+
+async def timezone_hint(update: Update, context: CallbackContext) -> None:  # active command is /start
+    usr_lng = await user_language(update.effective_user.id)
+    try:
+        await check_create_account(update)  # Create a user if not exist
+        await context.bot.send_message(
+            chat_id=update.effective_user.id,
+            text=texts[usr_lng]["textTimezone"],
+        )
+        await update.message.delete()
+    except Exception as e:
+        await update.message.reply_text(texts[usr_lng]["textError"], reply_markup=buttons[usr_lng]["main_menu_markup"])
+        logger.error(f"Error in timezone_hint function: {e}")
 
 
 async def menu_from_callback(query: CallbackQuery) -> None:
