@@ -7,6 +7,8 @@ This bot is a Python-based Telegram bot seamlessly integrated with a Django back
 ## Features 🏢
 
 ### Telegram Bot 📲
+- **Local Timezone**:
+  - Use **/timezone_set** to change your timezone.
 
 - **Multi-language Support**:
   - Currently supports three languages, with the ability to add more.(There is a help comment in bot_settings.py)
