@@ -202,7 +202,6 @@ async def account_info(query: CallbackQuery) -> None:
         reply_markup=buttons[usr_lng]["back_to_acc_markup"])
 
 
-# Todo: get user current time(24h format) and save the difference in database
 async def account_transactions(query: CallbackQuery) -> None:
     user_id = query.from_user.id
     usr_lng = await user_language(user_id)
