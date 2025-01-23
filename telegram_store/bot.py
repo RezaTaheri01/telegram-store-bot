@@ -468,8 +468,7 @@ async def get_user_location(update: Update, context: ContextTypes.DEFAULT_TYPE):
         user = await sync_to_async(UserData.objects.filter(id=usr_id).first, thread_sensitive=True)()
         user.utc_offset = timezone_offset  # Assuming `utc_offset` is a FloatField in your model
         await sync_to_async(user.save, thread_sensitive=True)()
-        if usr_id in timezone_cache:
-            timezone_cache[usr_id] = timezone_offset
+        timezone_cache[usr_id] = timezone_offset
 
     else:
         await update.message.reply_text(text=texts[usr_lng]["textTimezoneFailed"])
