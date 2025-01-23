@@ -206,6 +206,7 @@ async def account_info(query: CallbackQuery) -> None:
 async def account_transactions(query: CallbackQuery) -> None:
     user_id = query.from_user.id
     usr_lng = await user_language(user_id)
+    usr_utc_offset = await user_timezone(user_id)
 
     try:
         temp: list = query.data.split('_')
@@ -249,12 +250,16 @@ async def account_transactions(query: CallbackQuery) -> None:
         result_data = texts[usr_lng]["textTransaction"].format(f'{current_page}/{total_pages}')
         result_data += "\n\n"
         for t in user_transaction:
+            # Add usr_utc_offset hours
+            new_time = t.paid_time + timedelta(hours=usr_utc_offset)
+
             # Format paid_time using strftime
-            formatted_time = t.paid_time.strftime("%Y-%m-%d %H:%M:%S")
+            formatted_time = new_time.strftime("%Y-%m-%d %H:%M:%S")
+
             result_data += t.transaction_code + "\n" + texts[usr_lng]["textTransactionDetail"].format(
                 t.amount,
                 texts[usr_lng]["textPriceUnit"],
-                formatted_time + " " + time_zone
+                formatted_time
             )
 
         # Pagination buttons
@@ -299,6 +304,7 @@ async def account_transactions(query: CallbackQuery) -> None:
 async def user_purchase_products(query: CallbackQuery) -> None:
     user_id = query.from_user.id
     usr_lng = await user_language(user_id)
+    usr_utc_offset = await user_timezone(user_id)
 
     try:
         temp: list = query.data.split('_')
@@ -343,11 +349,13 @@ async def user_purchase_products(query: CallbackQuery) -> None:
         result_data += "\n\n"
         for p in user_products:
             product_name = await get_name(usr_lng, p.product)
+            # Add usr_utc_offset hours
+            new_time = p.purchase_date + timedelta(hours=usr_utc_offset)
             # Format paid_time using strftime
-            formatted_time = p.purchase_date.strftime("%Y-%m-%d %H:%M:%S")
+            formatted_time = new_time.strftime("%Y-%m-%d %H:%M:%S")
             result_data += texts[usr_lng]["textProductDetailList"].format(
                 product_name,
-                formatted_time + " " + time_zone,
+                formatted_time,
                 p.details,
             )
 
