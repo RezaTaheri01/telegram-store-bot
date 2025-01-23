@@ -816,7 +816,7 @@ async def user_language(user_id: int):
         language_cache[user_id] = user.language
         return user.language
     else:
-        return language_cache[user_id][0]
+        return language_cache[user_id]
 
 
 async def user_timezone(user_id: int):
