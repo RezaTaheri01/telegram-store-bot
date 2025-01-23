@@ -66,7 +66,6 @@ token = config("TOKEN")
 
 bot_username = ""
 
-# Todo: implement aging for better memory usage
 language_cache: dict = {}
 timezone_cache: dict = {}
 
