@@ -800,21 +800,28 @@ async def delete_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 
 # Todo: use cachetools for an LRU (Least Recently Used) cache to manage memory effectively.
-async def user_language(user_id: int, cache: bool = True):
-    date_now = timezone.now().date()
-    if user_id not in language_cache or not cache:
+async def user_language(user_id: int):
+    if user_id not in language_cache:
         user = await sync_to_async(UserData.objects.filter(id=user_id).first, thread_sensitive=True)()
         if not user:
-            language_cache[user_id] = (lang1, date_now)
+            language_cache[user_id] = lang1
             return lang1
-        language_cache[user_id] = (user.language, date_now)
-        # print(language_cache)
-        # print(sys.getsizeof(language_cache))
+        language_cache[user_id] = user.language
         return user.language
     else:
-        # reset aging
-        # language_cache[user_id] = (language_cache[user_id][0], date_now)
         return language_cache[user_id][0]
+
+
+async def user_timezone(user_id: int):
+    if user_id not in timezone_cache:
+        user = await sync_to_async(UserData.objects.filter(id=user_id).first, thread_sensitive=True)()
+        if not user:
+            timezone_cache[user_id] = 0
+            return 0
+        timezone_cache[user_id] = user.utc_offset
+        return user.utc_offset
+    else:
+        return timezone_cache[user_id]
 
 
 async def send_message_with_retry(bot, chat_id, text, retry=3):
