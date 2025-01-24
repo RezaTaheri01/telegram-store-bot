@@ -11,6 +11,7 @@ class UserData(models.Model):
     username = models.CharField(max_length=64, null=True, blank=True)  # telegram check username to be unique
     balance = models.IntegerField(default=0)
     language = models.CharField(max_length=8, default=lang1, verbose_name='Language')
+    utc_offset = models.FloatField(default=0.0)  # +3:30 => +3.5
 
     def __str__(self):
         # if username not founded using full name

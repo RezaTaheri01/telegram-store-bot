@@ -1,10 +1,17 @@
 import asyncio
 from bot_settings import *
 
+# region timezone
+import timezonefinder
+from datetime import datetime, timedelta
+from pytz import timezone as pytz_timezone
+from django.utils import timezone
+# endregion
+
+
 # region Django Imports
 import os
 import django
-from django.utils import timezone
 
 os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'telegram_store.settings')
 django.setup()
@@ -59,8 +66,8 @@ token = config("TOKEN")
 
 bot_username = ""
 
-# Todo: implement aging for better memory usage
 language_cache: dict = {}
+timezone_cache: dict = {}
 
 
 # endregion
@@ -82,6 +89,20 @@ async def start_menu(update: Update, context: CallbackContext) -> None:  # activ
     except Exception as e:
         await update.message.reply_text(texts[usr_lng]["textError"], reply_markup=buttons[usr_lng]["main_menu_markup"])
         logger.error(f"Error in start_menu function: {e}")
+
+
+async def timezone_hint(update: Update, context: CallbackContext) -> None:  # active command is /start
+    usr_lng = await user_language(update.effective_user.id)
+    try:
+        await check_create_account(update)  # Create a user if not exist
+        await context.bot.send_message(
+            chat_id=update.effective_user.id,
+            text=texts[usr_lng]["textTimezone"],
+        )
+        await update.message.delete()
+    except Exception as e:
+        await update.message.reply_text(texts[usr_lng]["textError"], reply_markup=buttons[usr_lng]["main_menu_markup"])
+        logger.error(f"Error in timezone_hint function: {e}")
 
 
 async def menu_from_callback(query: CallbackQuery) -> None:
@@ -181,10 +202,10 @@ async def account_info(query: CallbackQuery) -> None:
         reply_markup=buttons[usr_lng]["back_to_acc_markup"])
 
 
-# Todo: get user current time(24h format) and save the difference in database
 async def account_transactions(query: CallbackQuery) -> None:
     user_id = query.from_user.id
     usr_lng = await user_language(user_id)
+    usr_utc_offset = await user_timezone(user_id)
 
     try:
         temp: list = query.data.split('_')
@@ -228,12 +249,16 @@ async def account_transactions(query: CallbackQuery) -> None:
         result_data = texts[usr_lng]["textTransaction"].format(f'{current_page}/{total_pages}')
         result_data += "\n\n"
         for t in user_transaction:
+            # Add usr_utc_offset hours
+            new_time = t.paid_time + timedelta(hours=usr_utc_offset)
+
             # Format paid_time using strftime
-            formatted_time = t.paid_time.strftime("%Y-%m-%d %H:%M:%S")
+            formatted_time = new_time.strftime("%Y-%m-%d %H:%M:%S")
+
             result_data += t.transaction_code + "\n" + texts[usr_lng]["textTransactionDetail"].format(
                 t.amount,
                 texts[usr_lng]["textPriceUnit"],
-                formatted_time + " " + time_zone
+                formatted_time
             )
 
         # Pagination buttons
@@ -278,6 +303,7 @@ async def account_transactions(query: CallbackQuery) -> None:
 async def user_purchase_products(query: CallbackQuery) -> None:
     user_id = query.from_user.id
     usr_lng = await user_language(user_id)
+    usr_utc_offset = await user_timezone(user_id)
 
     try:
         temp: list = query.data.split('_')
@@ -322,11 +348,13 @@ async def user_purchase_products(query: CallbackQuery) -> None:
         result_data += "\n\n"
         for p in user_products:
             product_name = await get_name(usr_lng, p.product)
+            # Add usr_utc_offset hours
+            new_time = p.purchase_date + timedelta(hours=usr_utc_offset)
             # Format paid_time using strftime
-            formatted_time = p.purchase_date.strftime("%Y-%m-%d %H:%M:%S")
+            formatted_time = new_time.strftime("%Y-%m-%d %H:%M:%S")
             result_data += texts[usr_lng]["textProductDetailList"].format(
                 product_name,
-                formatted_time + " " + time_zone,
+                formatted_time,
                 p.details,
             )
 
@@ -412,10 +440,38 @@ async def change_user_language(query: CallbackQuery):
         user.language = lang1
 
     await sync_to_async(user.save, thread_sensitive=True)()
-    language_cache[user.id] = (user.language, timezone.now().date())
+    language_cache[user.id] = user.language
 
     await query.edit_message_text(text=texts[user.language]["textMenu"],
                                   reply_markup=buttons[user.language]['main_menu_markup'])
+
+
+async def get_user_location(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    usr_id = update.effective_user.id
+    usr_lng = await user_language(usr_id)
+    user_location = update.message.location
+    tf = timezonefinder.TimezoneFinder()
+    timezone_str = tf.timezone_at(lng=user_location.longitude, lat=user_location.latitude)
+
+    if timezone_str:
+        user_time_zone = pytz_timezone(timezone_str)
+        # now_in_user_timezone = datetime.now(user_timezone)
+
+        # Calculate timezone difference in hours (as a float) using .utcoffset()
+        timezone_offset = user_time_zone.utcoffset(datetime.now()).total_seconds() / 3600
+
+        await update.message.reply_text(text=f"{texts[usr_lng]['textTimezoneSuccess']}\n{timezone_str}")
+        # await update.message.reply_text(f"Your timezone is: {timezone_str} {now_in_user_timezone}")
+        # await update.message.reply_text(f"UTC Offset: {timezone_offset:.2f} hours")
+
+        # Update user timezone and offset
+        user = await sync_to_async(UserData.objects.filter(id=usr_id).first, thread_sensitive=True)()
+        user.utc_offset = timezone_offset  # Assuming `utc_offset` is a FloatField in your model
+        await sync_to_async(user.save, thread_sensitive=True)()
+        timezone_cache[usr_id] = timezone_offset
+
+    else:
+        await update.message.reply_text(text=texts[usr_lng]["textTimezoneFailed"])
 
 
 # endregion
@@ -753,21 +809,28 @@ async def delete_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 
 # Todo: use cachetools for an LRU (Least Recently Used) cache to manage memory effectively.
-async def user_language(user_id: int, cache: bool = True):
-    date_now = timezone.now().date()
-    if user_id not in language_cache or not cache:
+async def user_language(user_id: int):
+    if user_id not in language_cache:
         user = await sync_to_async(UserData.objects.filter(id=user_id).first, thread_sensitive=True)()
         if not user:
-            language_cache[user_id] = (lang1, date_now)
+            language_cache[user_id] = lang1
             return lang1
-        language_cache[user_id] = (user.language, date_now)
-        # print(language_cache)
-        # print(sys.getsizeof(language_cache))
+        language_cache[user_id] = user.language
         return user.language
     else:
-        # reset aging
-        # language_cache[user_id] = (language_cache[user_id][0], date_now)
-        return language_cache[user_id][0]
+        return language_cache[user_id]
+
+
+async def user_timezone(user_id: int):
+    if user_id not in timezone_cache:
+        user = await sync_to_async(UserData.objects.filter(id=user_id).first, thread_sensitive=True)()
+        if not user:
+            timezone_cache[user_id] = 0
+            return 0
+        timezone_cache[user_id] = user.utc_offset
+        return user.utc_offset
+    else:
+        return timezone_cache[user_id]
 
 
 async def send_message_with_retry(bot, chat_id, text, retry=3):
@@ -792,6 +855,7 @@ def main() -> None:
         CommandHandler("start", start_menu),
         CommandHandler("menu", start_menu),
         CommandHandler("balance", user_balance),
+        CommandHandler("timezone_set", timezone_hint),
         ConversationHandler(
             entry_points=[
                 CommandHandler("deposit", deposit_money),
@@ -809,6 +873,7 @@ def main() -> None:
             ],
         ),
         MessageHandler(filters.TEXT, delete_message),  # Performance issue
+        MessageHandler(filters.LOCATION, get_user_location),
         CallbackQueryHandler(callback_query_handler),
     ]
 

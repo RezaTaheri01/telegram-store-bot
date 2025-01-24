@@ -62,6 +62,9 @@ texts = {
         "textProductDetailList": "Product: {}\nDate: {}\nDetail: {}\n\n",  # Product Name, Purchase Date, Detail
         "textPrev": "Prev",
         "textNext": "Next",
+        "textTimezone": "Please send your location here",
+        "textTimezoneSuccess": "Your timezone set successfully",
+        "textTimezoneFailed": "Error while setting your timezone",
         # Button texts
         "buttonAccount": "Account Menu",
         "buttonBalance": "My Balance",
@@ -107,6 +110,9 @@ texts = {
         "textProductDetailList": "محصول: {}\nتاریخ خرید: {}\nجزئیات: {}\n\n",  # Product Name, Purchase Date, Detail
         "textPrev": "قبلی",
         "textNext": "بعدی",
+        "textTimezone": "لطفا موقعیت مکانی خود را ارسال نمایید",
+        "textTimezoneSuccess": "موقعیت زمانی شما با موفقیت ثبت شد",
+        "textTimezoneFailed": "در هنگام ثبت موقعیت زمانی شما با مشکل مواجه شدم",
         # Button texts
         "buttonAccount": "منوی اکانت",
         "buttonBalance": "موجودی",
@@ -153,6 +159,9 @@ texts = {
         # Product Name, Purchase Date, Detail
         "textPrev": "Vorh",
         "textNext": "Nächste",
+        "textTimezone": "Bitte senden Sie hier Ihren Standort",
+        "textTimezoneSuccess": "Ihre Zeitzone wurde erfolgreich eingestellt",
+        "textTimezoneFailed": "Fehler beim Festlegen Ihrer Zeitzone",
         # Button texts
         "buttonAccount": "Kontomenü",
         "buttonBalance": "Mein Guthaben",
