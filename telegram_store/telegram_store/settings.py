@@ -20,7 +20,8 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 # See https://docs.djangoproject.com/en/5.1/howto/deployment/checklist/
 
 # SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = config("SECRET_KEY", default='django-insecure-$kp!7e*2sv#%i%=qq(-#pspemkli#ruf_5i04(2q+eeoae_+2h')
+SECRET_KEY = config(
+    "SECRET_KEY", default='django-insecure-$kp!7e*2sv#%i%=qq(-#pspemkli#ruf_5i04(2q+eeoae_+2h')
 
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = config('DEBUG', default=False, cast=bool)
@@ -28,7 +29,6 @@ DEBUG = config('DEBUG', default=False, cast=bool)
 ALLOWED_HOSTS = config("ALLOWED_HOSTS").split(",")
 
 # Application definition
-
 INSTALLED_APPS = [
     'django.contrib.admin',
     'django.contrib.auth',
@@ -60,8 +60,7 @@ ROOT_URLCONF = 'telegram_store.urls'
 TEMPLATES = [
     {
         'BACKEND': 'django.template.backends.django.DjangoTemplates',
-        'DIRS': [BASE_DIR / 'templates']
-        ,
+        'DIRS': [BASE_DIR / 'templates'],
         'APP_DIRS': True,
         'OPTIONS': {
             'context_processors': [
@@ -138,4 +137,5 @@ STATIC_ROOT = BASE_DIR / 'production_files'
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
-EJF_ENCRYPTION_KEYS = config("ENCRYPTION_KEYS", default="6-QgONW6TUl5rt4Xq8u-wBwPcb15sIYS2CN6d69zueM=")
+EJF_ENCRYPTION_KEYS = config(
+    "ENCRYPTION_KEYS", default="6-QgONW6TUl5rt4Xq8u-wBwPcb15sIYS2CN6d69zueM=")
