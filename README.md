@@ -86,6 +86,14 @@ This bot is a Python-based Telegram bot seamlessly integrated with a Django back
    DEBUG=True
    ALLOWED_HOSTS=localhost,127.0.0.1,your-domain.com
    PAYMENT_DOMAIN=http://127.0.0.1:8000
+
+   #DB_ENGINE=postgresql
+   #DB_NAME=mydb
+   #DB_USER=postgres
+   #DB_PASS=secret123
+   #DB_HOST=localhost
+   #DB_PORT=5432
+
    ```
 
 4. **Migrate the Database** and  **Create Super User**:
