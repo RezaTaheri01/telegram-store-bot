@@ -78,10 +78,22 @@ WSGI_APPLICATION = 'telegram_store.wsgi.application'
 # Database
 # https://docs.djangoproject.com/en/5.1/ref/settings/#databases
 
+# sqlite3 | postgresql | mysql | oracle
+DB_ENGINE = config("DB_ENGINE", default="sqlite3")
+DB_NAME = config("DB_NAME", default=str(BASE_DIR / "db.sqlite3"))
+DB_USER = config("DB_USER", default="")
+DB_PASS = config("DB_PASS", default="")
+DB_HOST = config("DB_HOST", default="")
+DB_PORT = config("DB_PORT", default="")
+
 DATABASES = {
-    'default': {
-        'ENGINE': 'django.db.backends.sqlite3',
-        'NAME': BASE_DIR / 'db.sqlite3',
+    "default": {
+        "ENGINE": f"django.db.backends.{DB_ENGINE}",
+        "NAME": DB_NAME,
+        "USER": DB_USER,
+        "PASSWORD": DB_PASS,
+        "HOST": DB_HOST,
+        "PORT": DB_PORT,
     }
 }
 
