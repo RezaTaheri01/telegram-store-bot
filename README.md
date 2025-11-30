@@ -196,4 +196,4 @@ This bot is a Python-based Telegram bot seamlessly integrated with a Django back
 
 ## License 🔒
 
-This project is licensed under the MIT License. See the [`LICENSE`](https://github.com/RezaTaheri01/telegram-store-bot/blob/main/LICENSE) file for more details. 🔖
+This project is licensed under the GPL-3.0 license. See the [`LICENSE`](https://github.com/RezaTaheri01/telegram-store-bot/blob/main/LICENSE) file for more details. 🔖
