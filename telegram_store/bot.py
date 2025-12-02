@@ -749,7 +749,7 @@ async def payment(update: Update, context: CallbackContext, query: CallbackQuery
                                       text=texts[usr_lng]["textProductDetail"].format(product.details))
         # await query.delete_message()
     except Exception as e:
-        await update.message.reply_text(texts[usr_lng]["textError"], reply_markup=buttons[usr_lng]["back_menu_markup"])
+        await query.message.reply_text(texts[usr_lng]["textError"], reply_markup=buttons[usr_lng]["back_menu_markup"])
         logger.error(f"Error in payment function: {e}")
 
 
