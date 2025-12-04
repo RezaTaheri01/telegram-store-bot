@@ -168,3 +168,4 @@ cython_debug/
 *.zip
 /telegram_store/media
 telegram_store/add_random_products_details.py
+telegram_store/to-check
