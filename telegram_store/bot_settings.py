@@ -1,3 +1,4 @@
+# Todo: Re-check this steps
 """
 Steps to add a new language:(also you can remove language by these steps)
 
@@ -7,174 +8,139 @@ Steps to add a new language:(also you can remove language by these steps)
    a. `python manage.py makemigrations payment users products`
    b. `python manage.py migrate`
 4. In the domain admin panel, populate the new fields for product categories and products with the appropriate data for the new language.
+5. update prepopulated_fields in ProductAdmin and CategoryAdmin base on your languages at products/admin .py
 """
 
 from telegram import InlineKeyboardButton, InlineKeyboardMarkup
 from decouple import config
 
-categories_in_row = 2  # number of categories in row
-products_in_row = 2  # number of products in row
-number_of_transaction = 4  # number of transactions in transactions list
-number_of_products = 2  # number of products in purchase product list
-valid_link_in_seconds = 1800  # 30 minutes
-time_zone = "UTC"  # base on TIME_ZONE in telegram_store/setting.py
-
 # lang1 is your primary language
-lang1, lang2, lang3 = "en", "fa", "du"  # base on languages in telegram_store/setting.py
+# base on languages in telegram_store/setting.py
+LANG1, LANG2 = "ru", "en"
 
-# modify payment_url your base on your domain, just this part(http://127.0.0.1:8000)
-payment_url = config("PAYMENT_DOMAIN") + "/payment/confirm/?chat_id={}&user_id={}&amount={}&bot_link={}&transaction={}"
-bot_link = "https://t.me/{}"  # bot username
+TOKEN = config("TOKEN")
+UPDATE_SETTING_COMMAND = config("UPDATE_SETTING_COMMAND", "update")
+SITE_DOMAIN = config("SITE_DOMAIN", None)
+
+SEP_LINE = "\n" + "\_" * 40 + "\n\n"
+SEP_LINE_HTML = "\n" + "_" * 40 + "\n\n"
 
 # region Multi language texts
 # Attention the order of languages are important(should be same as lang and line 109 in telegram_store/setting.py)
+# Wrap in backticks ` to prevent any Markdown parsing
 texts = {
-    lang1: {
-        "textError": "Something went wrong",
-        "textStart": "Hello, {}!\nWelcome to Persia shop",  # username
-        "textMenu": "Please choose from below",
-        "textPriceUnit": "Dollar",
-        "textBalance": "Your current balance is {} {}",  # amount, price unit
-        "textAmount": "Please enter the amount:",
-        "textInvalidAmount": "Invalid input. Please enter a valid number:",
-        "textChargeAccount": "Your account has been successfully charged {} {}",  # amount, price unit
-        "textPaymentLink": f"Your payment link is ready and it's valid for {valid_link_in_seconds // 60} minutes",
-        "textNoTransaction": "No transactions were found",
-        "textTransaction": "Here are your transactions, page {}:",
-        "textProducts": "Here are your purchases, page {}:",
-        "textAccountMenu": "Hey {}! Please choose from below",  # username
-        "textAccInfo": "Username: {}\nFull name: {}\nBalance: {} {}",  # username, full name, balance
-        "textNotUser": "User not found",
-        "textPayButton": "Pay",
-        "textNotFound": "Not found",
-        "textProductCategories": "Product categories",
-        "textInvalidCategory": "Invalid category ID",
-        "textNoProductFound": "No product found for this category",
-        "textBackButton": "Back",
-        "textInvalidProduct": "Invalid product ID! Please try again",
-        "textProductList": "{} products",  # category name
-        "textProductSoldOut": "This product is sold out or no longer available",
-        "textPurchaseBill": "The {} costs {} {}",  # product name, price, price unit
-        "textNotEnoughMoney": "Insufficient funds",
-        "textInvalidPaymentAmount": "Invalid payment amount! Please try again",
-        "textProductDetail": "Successful\n{}",  # product detail
-        "textTransactionDetail": "Amount: {} {}\nDate: {}\n\n",  # amount, priceUnit, datetime
-        "textProductDetailList": "Product: {}\nDate: {}\nDetail: {}\n\n",  # Product Name, Purchase Date, Detail
-        "textPrev": "Prev",
-        "textNext": "Next",
-        "textTimezone": "Please send your location here",
-        "textTimezoneSuccess": "Your timezone set successfully",
-        "textTimezoneFailed": "Error while setting your timezone",
-        # Button texts
-        "buttonAccount": "Account Menu",
-        "buttonBalance": "My Balance",
-        "buttonCategories": "Product Categories",
-        "buttonDeposit": "Deposit",
-        "buttonAccountInfo": "Account Info",
-        "buttonTransactionsList": "Transactions List",
-        "buttonBackMainMenu": "Main Menu",
-        "buttonBack": "Back",
-        "buttonProductsList": "Purchase History",
-        "buttonLanguage": lang2,  # don't change this
+    LANG1: {
+        "textError": "⚠️ Произошла ошибка. Попробуйте снова",
+        "textErrorNoPrice": "⚠️ Не удалось получить цену TON. Переводы временно недоступны. Пожалуйста, попробуйте позже",
+        "textStart": "👋 Привет, {}!\n📋 Пожалуйста, выберите вариант ниже:",
+        "textMenu": "📋 Пожалуйста, выберите вариант ниже:",
+        "textBalance": "💰 Ваш текущий баланс: {} {}",
+        "textAmount": "🔢 Введите сумму:",
+        "textInvalidAmount": "❗ Неверный ввод. Пожалуйста, введите корректное число",
+        "textChargeAccount": "🎉 *Ваш аккаунт пополнен на* `{}` *TON*\n\n💱 *Курс:* 1 TON = `{}` {}",
+        "textPaymentLink": (
+            "💎 Отправьте TON на этот адрес:\n\n`{}`\n\n"
+            "💬 С этим комментарием:\n\n`{}`\n\n"
+            "💱 *Курс обмена:* 1 TON = `{}` {}\n\n"
+            "⚠️ Перед отправкой всегда заново открывайте страницу Пополнения (/pay)."
+        ),
+        "textNoTransaction": "📭 Транзакции не найдены",
+        "textTransaction": "📄 Ваши транзакции, страница {}:",
+        "textProducts": "🛍 Ваши покупки, страница {}:",
+        "textAccountMenu": "👤 Привет, {}! Выберите действие:",
+        "textAccInfo": "👤 Имя пользователя: {}\n📛 Полное имя: {}\n💰 Баланс: {} {}",
+        "textNotUser": "❌ Пользователь не найден",
+        "textPayButton": "💳 Оплатить",
+        "textNotFound": "🔍 Не найдено",
+        "textProductCategories": "📂 Категории товаров",
+        "textInvalidCategory": "❗ Неверный ID категории",
+        "textNoProductFound": "🚫 Товары не найдены",
+        "textBackButton": "↩️ Назад",
+        "textInvalidProduct": "❗ Неверный ID товара. Попробуйте снова",
+        "textProductList": "📦 {} товаров доступно",
+        "textProductSoldOut": "❗ Товар недоступен или распродан",
+        "textPurchaseBill": "🛒 {}\n💰 Цена: {} {}\n🔑 В наличии: {}",
+        "textPurchaseUpdateAvailable": "🔑 В наличии: {}",
+        "textNotEnoughMoney": "💸 Недостаточно средств",
+        "textInvalidPaymentAmount": "⚠️ Неверная сумма платежа, попробуйте ещё раз",
+        "textProductDetail": "✅ Покупка успешна!\n\n🔑 {}",
+        "textPaymentFailed": "❌ Платеж не прошел. Пожалуйста, попробуйте снова",
+        "textTransactionDetail": "💱 *Курс:* 1 TON = `{}` {}\n🆔 Транзакция: `{}`\n💳 Сумма: `{}` TON\n📅 Дата: {}{}",
+        "textProductDetailList": "🛍 Товар: {}\n📅 Дата: {}\n📦 Детали: {}\n\n",
+        "textPrev": "⬅️ Предыдущая",
+        "textNext": "➡️ Следующая",
+        "textTimezone": "🌍 Отправьте местоположение для установки часового пояса",
+        "textTimezoneSuccess": "⏱ Часовой пояс обновлен!",
+        "textTimezoneFailed": "⚠️ Не удалось обновить. Попробуйте позже",
+        "buttonAccount": "👤 Аккаунт",
+        "buttonBalance": "💰 Баланс",
+        "buttonCategories": "📂 Категории",
+        "buttonDeposit": "➕ Пополнить",
+        "buttonAccountInfo": "🔎 Информация",
+        "buttonTransactionsList": "📄 История транзакций",
+        "buttonBackMainMenu": "🏠 Главное меню",
+        "buttonBack": "↩️ Назад",
+        "buttonProductsList": "🛍 История покупок",
+        "telegramWallet": "💸 Оплатить через @Wallet",
+        "buttonLanguage": LANG2,
     },
-    lang2: {
-        "textError": "مشکلی پیش آمده است",
-        "textStart": "سلام {}\nبه فروشگاه پرشیا خوش آمدید",  # username
-        "textMenu": "از گزینه‌های زیر انتخاب کنید:",
-        "textPriceUnit": "دلار",
-        "textBalance": "موجودی فعلی شما {} {} است",  # amount, price unit
-        "textAmount": "لطفاً مقدار را وارد کنید:",
-        "textInvalidAmount": "ورودی نامعتبر است. لطفاً یک عدد معتبر وارد کنید:",
-        "textChargeAccount": "حساب شما با موفقیت به مقدار {} {} شارژ شد",  # amount, price unit
-        "textPaymentLink": f"لینک پرداخت شما آماده است و برای {valid_link_in_seconds // 60} دقیقه معتبر است.",
-        "textNoTransaction": "هیچ تراکنشی یافت نشد",
-        "textTransaction": "تراکنش های شما, صفحه {}",
-        "textProducts": "محصولات خریداری شده شما, صفحه {}",
-        "textAccountMenu": "درود مجدد {}! لطفا از گزینه های زیر انتخاب کنید",  # username
-        "textAccInfo": "نام کاربری: {}\nنام کامل: {}\nموجودی: {} {}",  # username, full name, balance
-        "textNotUser": "کاربر یافت نشد",
-        "textPayButton": "پرداخت",
-        "textNotFound": "یافت نشد",
-        "textProductCategories": "دسته‌بندی محصولات",
-        "textInvalidCategory": "شناسه دسته‌بندی نامعتبر است",
-        "textNoProductFound": "محصولی برای این دسته‌بندی یافت نشد",
-        "textBackButton": "بازگشت",
-        "textInvalidProduct": "شناسه محصول نامعتبر است! لطفاً دوباره امتحان کنید",
-        "textProductList": "محصولات {}",  # category name
-        "textProductSoldOut": "این محصول فروخته شده یا دیگر موجود نیست",
-        "textPurchaseBill": "{} به قیمت {} {}",  # product name, price, price unit
-        "textNotEnoughMoney": "موجودی کافی نیست",
-        "textInvalidPaymentAmount": "مقدار پرداخت نامعتبر است! لطفاً دوباره امتحان کنید",
-        "textProductDetail": "موفقیت ‌آمیز\n{}",  # product detail
-        "textTransactionDetail": "مقدار: {} {}\nتاریخ: {}\n\n",  # amount, priceUnit, datetime
-        "textProductDetailList": "محصول: {}\nتاریخ خرید: {}\nجزئیات: {}\n\n",  # Product Name, Purchase Date, Detail
-        "textPrev": "قبلی",
-        "textNext": "بعدی",
-        "textTimezone": "لطفا موقعیت مکانی خود را ارسال نمایید",
-        "textTimezoneSuccess": "موقعیت زمانی شما با موفقیت ثبت شد",
-        "textTimezoneFailed": "در هنگام ثبت موقعیت زمانی شما با مشکل مواجه شدم",
-        # Button texts
-        "buttonAccount": "منوی اکانت",
-        "buttonBalance": "موجودی",
-        "buttonCategories": "دسته بندی محصولات",
-        "buttonDeposit": "افزایش موجودی",
-        "buttonAccountInfo": "جزِئیات اکانت",
-        "buttonTransactionsList": "لیست تراکنش ها",
-        "buttonBackMainMenu": "منوی اصلی",
-        "buttonBack": "بازگشت",
-        "buttonProductsList": "تاریخچه محصولات",
-        "buttonLanguage": lang3,  # don't change this
-    },
-    lang3: {
-        "textError": "Etwas ist schiefgelaufen",
-        "textStart": "Hallo, {}!\nWillkommen im Persia Shop",  # username
-        "textMenu": "Bitte wählen Sie aus den folgenden Optionen",
-        "textPriceUnit": "Dollar",
-        "textBalance": "Ihr aktuelles Guthaben beträgt {} {}",  # amount, price unit
-        "textAmount": "Bitte geben Sie den Betrag ein:",
-        "textInvalidAmount": "Ungültige Eingabe. Bitte geben Sie eine gültige Zahl ein:",
-        "textChargeAccount": "Ihr Konto wurde erfolgreich mit {} {} aufgeladen",  # amount, price unit
-        "textPaymentLink": f"Ihr Zahlungslink ist bereit und für {valid_link_in_seconds // 60} Minuten gültig",
-        "textNoTransaction": "Es wurden keine Transaktionen gefunden",
-        "textTransaction": "Hier sind Ihre Transaktionen, Seite {}:",
-        "textProducts": "Hier sind Ihre Produkte, Seite {}:",
-        "textAccountMenu": "Hallo {}! Bitte wählen Sie aus den folgenden Optionen",  # username
-        "textAccInfo": "Benutzername: {}\nVollständiger Name: {}\nGuthaben: {} {}",  # username, full name, balance
-        "textNotUser": "Benutzer nicht gefunden",
-        "textPayButton": "Bezahlen",
-        "textNotFound": "Nicht gefunden",
-        "textProductCategories": "Produktkategorien",
-        "textInvalidCategory": "Ungültige Kategorie-ID",
-        "textNoProductFound": "Für diese Kategorie wurden keine Produkte gefunden",
-        "textBackButton": "Zurück",
-        "textInvalidProduct": "Ungültige Produkt-ID! Bitte versuchen Sie es erneut",
-        "textProductList": "{} Produkte",  # category name
-        "textProductSoldOut": "Dieses Produkt ist ausverkauft oder nicht mehr verfügbar",
-        "textPurchaseBill": "Das {} kostet {} {}",  # product name, price, price unit
-        "textNotEnoughMoney": "Unzureichende Mittel",
-        "textInvalidPaymentAmount": "Ungültiger Zahlungsbetrag! Bitte versuchen Sie es erneut",
-        "textProductDetail": "Erfolgreich\n{}",  # product detail
-        "textTransactionDetail": "Betrag: {} {}\nDatum: {}\n\n",  # amount, priceUnit, datetime
-        "textProductDetailList": "Produkte: {}\nDatum: {}\nEinzelheit: {}\n\n",
-        # Product Name, Purchase Date, Detail
-        "textPrev": "Vorh",
-        "textNext": "Nächste",
-        "textTimezone": "Bitte senden Sie hier Ihren Standort",
-        "textTimezoneSuccess": "Ihre Zeitzone wurde erfolgreich eingestellt",
-        "textTimezoneFailed": "Fehler beim Festlegen Ihrer Zeitzone",
-        # Button texts
-        "buttonAccount": "Kontomenü",
-        "buttonBalance": "Mein Guthaben",
-        "buttonCategories": "Produktkategorien",
-        "buttonDeposit": "Einzahlen",
-        "buttonAccountInfo": "Kontoinformationen",
-        "buttonTransactionsList": "Transaktionsliste",
-        "buttonBackMainMenu": "Hauptmenü",
-        "buttonBack": "Zurück",
-        "buttonProductsList": "Produkte",
-        "buttonLanguage": lang1,  # Don't change this
+    LANG2: {
+        "textError": "⚠️ An error occurred. Please try again",
+        "textErrorNoPrice": "⚠️ Unable to retrieve TON price. Transfers are temporarily unavailable. Please try again later",
+        "textStart": "👋 Hello, {}!\n📋 Please choose an option below:",
+        "textMenu": "📋 Please choose an option below:",
+        "textBalance": "💰 Your current balance: {} {}",
+        "textAmount": "🔢 Enter the amount:",
+        "textInvalidAmount": "❗ Invalid input. Please enter a valid number",
+        "textChargeAccount": "🎉 *Your account was credited with* `{}` *TON*\n\n💱 *Exchange rate:* 1 TON = `{}` {}",
+        "textPaymentLink": (
+            "💎 Send TON to this address:\n\n`{}`\n\n"
+            "💬 With this comment:\n\n`{}`\n\n"
+            "💱 *Exchange rate:* 1 TON = `{}` {}\n\n"
+            "⚠️ Always re-check the Deposit page before sending (/pay)."
+        ),
+        "textNoTransaction": "📭 No transactions found",
+        "textTransaction": "📄 Your transactions, page {}:",
+        "textProducts": "🛍 Your purchases, page {}:",
+        "textAccountMenu": "👤 Please choose an option:",
+        "textAccInfo": "👤 Username: {}\n📛 Full Name: {}\n💰 Balance: {} {}",
+        "textNotUser": "❌ User not found",
+        "textPayButton": "💳 Pay",
+        "textNotFound": "🔍 Not found",
+        "textProductCategories": "📂 Product Categories",
+        "textInvalidCategory": "❗ Invalid category ID",
+        "textNoProductFound": "🚫 No products in this category",
+        "textBackButton": "↩️ Back",
+        "textInvalidProduct": "❗ Invalid product ID. Try again",
+        "textProductList": "📦 {} products available",
+        "textProductSoldOut": "❗ This product is sold out or unavailable",
+        "textPurchaseBill": "🛒 {}\n💰 Price: {} {}\n🔑 Available: {}",
+        "textPurchaseUpdateAvailable": "🔑 Available: {}",
+        "textNotEnoughMoney": "💸 Insufficient funds",
+        "textInvalidPaymentAmount": "⚠️ Invalid payment amount, try again",
+        "textProductDetail": "✅ Purchase successful!\n\n🔑 {}",
+        "textPaymentFailed": "❌ Payment failed. Please try again",
+        "textTransactionDetail": "💱 *Exchange rate:* 1 TON = `{}` {}\n🆔 Tx: `{}`\n💳 Amount: `{}` TON\n📅 Date: {}{}",
+        "textProductDetailList": "🛍 Product: {}\n📅 Date: {}\n📦 Details: {}\n\n",
+        "textPrev": "⬅️ Previous",
+        "textNext": "➡️ Next",
+        "textTimezone": "🌍 Send your location to set your timezone",
+        "textTimezoneSuccess": "⏱ Timezone updated!",
+        "textTimezoneFailed": "⚠️ Failed to update. Try again",
+        "buttonAccount": "👤 Account",
+        "buttonBalance": "💰 My Balance",
+        "buttonCategories": "📂 Categories",
+        "buttonDeposit": "➕ Deposit",
+        "buttonAccountInfo": "🔎 Account Info",
+        "buttonTransactionsList": "📄 Transaction History",
+        "buttonBackMainMenu": "🏠 Main Menu",
+        "buttonBack": "↩️ Back",
+        "buttonProductsList": "🛍 Purchase History",
+        "telegramWallet": "💸 Pay with @Wallet",
+        "buttonLanguage": LANG1,
     }
 }
+
 # endregion
 
 
@@ -196,15 +162,24 @@ payment_cb = "pay"
 buttons: dict = {key: {} for key in texts.keys()}
 
 for key, value in texts.items():
-    main_menu_button = InlineKeyboardButton(texts[key]["buttonBackMainMenu"], callback_data=main_menu_cb)
-    account_menu_button = InlineKeyboardButton(texts[key]["buttonAccount"], callback_data=account_menu_cb)
+    main_menu_button = InlineKeyboardButton(
+        texts[key]["buttonBackMainMenu"], callback_data=main_menu_cb)
+    account_menu_button = InlineKeyboardButton(
+        texts[key]["buttonAccount"], callback_data=account_menu_cb)
+
+    balance_keys = [[InlineKeyboardButton(
+        texts[key]["buttonDeposit"], callback_data=deposit_cb)], [main_menu_button]]
+    buttons[key]["balance_markup"] = InlineKeyboardMarkup(balance_keys)
 
     main_menu_keys = [
         [account_menu_button,
          InlineKeyboardButton(texts[key]["buttonBalance"], callback_data=balance_cb)],
-        [InlineKeyboardButton(texts[key]["buttonCategories"], callback_data=categories_cb)],
-        [InlineKeyboardButton(texts[key]["buttonLanguage"], callback_data=change_lang_cb)],
-        [InlineKeyboardButton(texts[key]["buttonDeposit"], callback_data=deposit_cb)],
+        [InlineKeyboardButton(texts[key]["buttonCategories"],
+                              callback_data=categories_cb)],
+        [InlineKeyboardButton(texts[key]["buttonLanguage"],
+                              callback_data=change_lang_cb)],
+        [InlineKeyboardButton(texts[key]["buttonDeposit"],
+                              callback_data=deposit_cb)],
     ]
     buttons[key]["main_menu_markup"] = InlineKeyboardMarkup(main_menu_keys)
 
@@ -214,7 +189,8 @@ for key, value in texts.items():
     buttons[key]["back_menu_markup"] = InlineKeyboardMarkup(back_menu_key)
 
     account_keys = [
-        [InlineKeyboardButton(texts[key]["buttonAccountInfo"], callback_data=account_info_cb)],
+        [InlineKeyboardButton(texts[key]["buttonAccountInfo"],
+                              callback_data=account_info_cb)],
         [InlineKeyboardButton(texts[key]["buttonProductsList"], callback_data=purchase_products_cb),
          InlineKeyboardButton(texts[key]["buttonTransactionsList"], callback_data=transactions_cb)],
         [main_menu_button]
@@ -228,7 +204,8 @@ for key, value in texts.items():
     ]
     buttons[key]["back_to_acc_markup"] = InlineKeyboardMarkup(back_to_acc_key)
 
-    back_to_cats_key = [[InlineKeyboardButton(texts[key]["buttonBack"], callback_data=categories_cb)]]
-    buttons[key]["back_to_cats_markup"] = InlineKeyboardMarkup(back_to_cats_key)
-
+    back_to_cats_key = [[InlineKeyboardButton(
+        texts[key]["buttonBack"], callback_data=categories_cb)]]
+    buttons[key]["back_to_cats_markup"] = InlineKeyboardMarkup(
+        back_to_cats_key)
 # endregion
