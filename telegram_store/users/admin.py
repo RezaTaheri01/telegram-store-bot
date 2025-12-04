@@ -2,10 +2,13 @@ from django.contrib import admin
 from . import models
 
 
-# Register your models here.
+@admin.register(models.UserData)
 class AccountAdmin(admin.ModelAdmin):
-    list_display = ['__str__']
-    readonly_fields = ['id', 'language']
+    list_display = ["__str__"]
+    readonly_fields = ["id", "language", "utc_offset", "balance"]
+    search_fields = ["id", "username"]
 
 
-admin.site.register(models.UserData, AccountAdmin)
+@admin.register(models.BotSettings)
+class BotSettingAdmin(admin.ModelAdmin):
+    pass
