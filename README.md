@@ -64,7 +64,7 @@ This bot is a Python-based Telegram bot seamlessly integrated with a Django back
 
 1. **Clone the Repository**:
    ```bash
-   git clone https://github.com/RezaTaheri01/telegram-store-bot.git
+   git clone --branch PSP-payment https://github.com/RezaTaheri01/telegram-store-bot.git
    ```
    ```bash
    cd telegram-store-bot/telegram_store
