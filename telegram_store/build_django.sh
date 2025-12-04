@@ -1,13 +1,13 @@
 #!/bin/bash
 
-echo "Creating virtual environment..."
-python3 -m venv .venv
+# echo "Creating virtual environment..."
+# python3 -m venv .venv
 
-echo "Activating virtual environment..."
-# For Linux/macOS:
-source .venv/bin/activate
-# For Windows (Git Bash / WSL):
-# source .venv/Scripts/activate
+# echo "Activating virtual environment..."
+# # For Linux/macOS:
+# source .venv/bin/activate
+# # For Windows (Git Bash / WSL):
+# # source .venv/Scripts/activate
 
 echo "Installing dependencies..."
 pip install --upgrade pip
