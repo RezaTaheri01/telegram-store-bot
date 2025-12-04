@@ -1,10 +1,8 @@
 from django.db import models
 from users.models import UserData
-from encrypted_json_fields.fields import EncryptedCharField
 from telegram_store.settings import LANGUAGES
 
 
-# Create your models here.
 class Category(models.Model):
     name = models.CharField(max_length=32, verbose_name="Category Name", unique=True, null=False)
     is_delete = models.BooleanField(default=False, blank=True)
@@ -20,8 +18,11 @@ class Category(models.Model):
 class Product(models.Model):
     category = models.ForeignKey(to=Category, on_delete=models.SET_NULL, null=True, verbose_name="Category")
     name = models.CharField(max_length=32, verbose_name="Product Name", null=False)  # unique base on category
+    image = models.ImageField(upload_to='products/', null=True, blank=True, verbose_name="Product Image")
     price = models.IntegerField(verbose_name="Product Price")
+    description = models.TextField(verbose_name="Product Description", null=True, blank=True)
     is_delete = models.BooleanField(default=False, blank=True)
+    order = models.IntegerField(default=0)
 
     class Meta:
         verbose_name = "Product"
@@ -44,7 +45,8 @@ class Product(models.Model):
 class ProductDetail(models.Model):
     product = models.ForeignKey(to=Product, on_delete=models.SET_NULL, null=True, verbose_name="Product")
     # details are saved encrypted
-    details = EncryptedCharField(max_length=256, verbose_name="Details")  # for example: user passwd
+    # details = EncryptedCharField(max_length=256, verbose_name="Details")  # for example: user passwd
+    details = models.CharField(max_length=256, verbose_name="Details")
     is_purchased = models.BooleanField(default=False, verbose_name="Is Purchased")
     purchase_date = models.DateTimeField(null=True, blank=True, verbose_name="Purchased  Date")
     buyer = models.ForeignKey(to=UserData, on_delete=models.SET_NULL, null=True, verbose_name="Buyer")

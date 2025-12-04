@@ -5,11 +5,11 @@ from telegram_store.settings import MODELTRANSLATION_LANGUAGES
 
 @register(Product)
 class AccountTranslationOptions(TranslationOptions):
-    fields = ['name']
+    fields = ["name", "description"]
     required_languages = MODELTRANSLATION_LANGUAGES # Make these non-nullable
 
 
 @register(Category)
 class AccountTranslationOptions(TranslationOptions):
-    fields = ['name']
+    fields = ["name"]
     required_languages = MODELTRANSLATION_LANGUAGES  # Make these non-nullable
