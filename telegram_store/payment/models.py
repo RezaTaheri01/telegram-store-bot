@@ -1,41 +1,38 @@
 from django.db import models
 from users.models import UserData
-from django.utils import timezone
-from bot_settings import valid_link_in_seconds
 
 
-# Create your models here.
+class Transaction(models.Model):
+    user = models.ForeignKey(
+        UserData, on_delete=models.SET_NULL, null=True, verbose_name="User")
+    amount = models.DecimalField(
+        max_digits=18, decimal_places=9, verbose_name="TON amount")
+    comment = models.CharField(
+        max_length=64, verbose_name="Memo/tag/Comment", null=True)
+    tx_id = models.CharField(max_length=256, unique=True)  # blockchain hash
+    lt = models.CharField(max_length=64, verbose_name="Logical Time", null=True)
 
-# Todo: Add tracking code
-class Transactions(models.Model):
-    user = models.ForeignKey(to=UserData, on_delete=models.CASCADE, verbose_name="User")
-    transaction_code = models.CharField(max_length=32, unique=True, null=True, blank=True)
-    tracking_code = models.CharField(max_length=32, unique=True, null=True, blank=True)  # from psp
-    amount = models.IntegerField()
-    paid_time = models.DateTimeField(null=True, blank=True)
-    is_paid = models.BooleanField(default=False)
-    created_date = models.DateTimeField(auto_now=True)
-    is_delete = models.BooleanField(default=False, blank=True)
+    price_per_ton = models.DecimalField(
+        max_digits=18, decimal_places=2, null=True)  # snapshot of TON price
+    price_currency = models.CharField(max_length=8, default="usd", null=True)
+
+    paid_time = models.DateTimeField(
+                auto_now_add=True, null=True)  # Created & Update Date
+    is_delete = models.BooleanField(default=False)
+    atomic_failed =models.BooleanField(default=False)
 
     class Meta:
         ordering = ['-paid_time']
-        constraints = [
-            models.CheckConstraint(
-                check=models.Q(amount__gte=0),
-                name='amount_positive'
-            )
-        ]
         verbose_name = "Transaction"
         verbose_name_plural = "Transactions"
 
-    def mark_as_paid(self):
-        self.is_paid = True
-        self.paid_time = timezone.now()
-        self.save()
+    def __str__(self):
+        return f"{self.comment}"
 
-    def is_expired(self):
-        if (timezone.now() - self.created_date).total_seconds() > valid_link_in_seconds:  # check bot_settings.py
-            self.is_delete = True  # soft delete
-            self.save()
-            return True
-        return False
+
+class TonCursor(models.Model):
+    key = models.CharField(max_length=32, unique=True)
+    last_lt = models.BigIntegerField(default=0)
+    
+    def __str__(self):
+        return f"{self.last_lt}"
