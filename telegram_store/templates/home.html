@@ -1,17 +1,99 @@
-{% extends "layout.html" %}
-{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Telegram Bot</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
 
-{% block title %}Home Page{% endblock %}
+<style>
+    *{
+        margin:0;
+        padding:0;
+        box-sizing:border-box;
+        font-family: "Segoe UI", sans-serif;
+    }
 
-{% block css %}
-    <link rel="stylesheet" href="{% static "telegram_store/css/confirm.css" %}">
-{% endblock %}
+    body{
+        height:100vh;
+        display:flex;
+        align-items:center;
+        justify-content:center;
+        background: radial-gradient(circle at 20% 30%, #000000 0%, #04020F 40%, #0B001E 100%);
+        overflow:hidden;
+        color:#fff;
+    }
 
+    /* Animated background glow */
+    .glow{
+        position:absolute;
+        width:500px;
+        height:500px;
+        background:conic-gradient(#4e00ff, #1500ff, #6000ff, #4e00ff);
+        filter:blur(200px);
+        opacity:0.25;
+        animation:rotate 12s linear infinite;
+    }
+    @keyframes rotate{
+        100%{ transform:rotate(360deg); }
+    }
 
-{% block body %}
-    <div class="container p-0">
-        <div class="card px-4">
-            <p class="h8 py-3">Welcome</p>
-        </div>
-    </div>
-{% endblock %}
+    .card{
+        position:relative;
+        background:rgba(255,255,255,0.03);
+        border:1px solid rgba(255,255,255,0.08);
+        padding:55px 80px;
+        border-radius:20px;
+        text-align:center;
+        backdrop-filter:blur(20px);
+        box-shadow:0 0 80px rgba(0,0,0,0.7);
+        animation:fade 1s ease forwards;
+        transform:translateY(20px);
+    }
+    @keyframes fade{
+        to{ transform:translateY(0); opacity:1; }
+    }
+
+    h1{
+        font-size:38px;
+        font-weight:700;
+        letter-spacing:1px;
+        margin-bottom:8px;
+    }
+
+    p{
+        opacity:.7;
+        font-size:16px;
+        margin-bottom:22px;
+    }
+
+    a{
+        display:inline-block;
+        padding:15px 40px;
+        background:#6100ff;
+        border-radius:30px;
+        font-size:19px;
+        font-weight:600;
+        text-decoration:none;
+        color:#fff;
+        box-shadow:0 0 18px #6100ff;
+        transition:0.25s;
+    }
+    a:hover{
+        transform:scale(1.1);
+        background:#8a42ff;
+        box-shadow:0 0 35px #7f2cff;
+    }
+</style>
+</head>
+<body>
+
+<div class="glow"></div>
+
+<div class="card">
+    <h1>Telegram Bot</h1>
+    <p>Click to open</p>
+    <a href="{{ bot_link }}" target="_blank">Open Bot</a>
+</div>
+
+</body>
+</html>
