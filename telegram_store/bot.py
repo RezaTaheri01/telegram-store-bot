@@ -180,10 +180,11 @@ def get_last_lt() -> int:
 
 @sync_to_async
 def update_last_lt(new_lt):
-    cursor = TonCursor.objects.select_for_update().get(key="deposit_cursor")
-    cursor.last_lt = new_lt
-    cursor.save()
-    
+    with transaction.atomic():
+        cursor = TonCursor.objects.select_for_update().get(key="deposit_cursor")
+        cursor.last_lt = new_lt
+        cursor.save()
+
      
 @sync_to_async
 def record_failed_tx(tx_hash, amount, comment, price, price_currency, lt=None):
