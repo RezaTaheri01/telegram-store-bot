@@ -166,3 +166,5 @@ cython_debug/
 /telegram_store/products/migrations
 /telegram_store/production_files
 *.zip
+/telegram_store/media
+telegram_store/add_random_products_details.py
