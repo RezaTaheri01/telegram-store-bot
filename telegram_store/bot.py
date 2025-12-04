@@ -477,89 +477,8 @@ async def get_user_location(update: Update, context: ContextTypes.DEFAULT_TYPE):
 # endregion
 
 
-# region ConversationHandler get amount
-
-
-async def deposit_money(update: Update, context: CallbackContext):
-    usr_lng = await user_language(update.effective_user.id)
-    await update.message.reply_text(text=texts[usr_lng]["textAmount"],
-                                    reply_markup=buttons[usr_lng]["back_menu_markup"])
-    await update.message.delete()
-    return ENTER_AMOUNT
-
-
-# Deposit money from CallbackQuery
-async def deposit_money_from_callback(update: Update, context: CallbackContext):
-    query: CallbackQuery = update.callback_query
-    usr_lng = await user_language(query.from_user.id)
-    if query.data != deposit_cb:
-        return ConversationHandler.END
-    await query.edit_message_text(text=texts[usr_lng]["textAmount"], reply_markup=buttons[usr_lng]["back_menu_markup"])
-
-    return ENTER_AMOUNT
-
-
-# Todo: pass payment url just a token and on view fetch info from database
-async def capture_amount(update: Update, context: CallbackContext):
-    global bot_username
-    # await context.bot.delete_message(update.effective_chat.id, update.effective_message.id - 1)
-    user_input = update.message.text
-    user_id = update.effective_user.id
-    usr_lng = await user_language(user_id)
 
     try:
-        amount = int(user_input)
-        '''
-        Todo : redirect to psp then redirect to bot, no need for extra pages.
-        Instead of call charge_account, I need to send a link
-        to payment page that created by Django and if successful, call charge_account.
-        After payment done, a pop up to open telegram app desktop or mobile.
-        charge_account update database and send message to telegram
-        '''
-        chat_id = update.effective_chat.id
-        await check_create_account(update)
-
-        # create a new transaction
-        transaction = Transactions(user_id=user_id, amount=amount)
-        await sync_to_async(transaction.save, thread_sensitive=True)()
-        transaction.transaction_code = str(transaction.id + 1_000_000)
-        await sync_to_async(transaction.save, thread_sensitive=True)()
-
-        if not bot_username:
-            bot_username = context.bot.username
-        # print(bot_username)
-
-        pay_key = [[InlineKeyboardButton(text=texts[usr_lng]["textPayButton"], url=payment_url.format(chat_id,
-                                                                                                      user_id, amount,
-                                                                                                      bot_link.format(
-                                                                                                          bot_username),
-                                                                                                      transaction.transaction_code))]]
-
-        pay_key_markup = InlineKeyboardMarkup(pay_key)
-
-        await update.message.reply_text(text=texts[usr_lng]["textPaymentLink"],
-                                        reply_markup=pay_key_markup)
-        # await charge_account(update.effective_user.id, update.effective_chat.id, amount)
-        return ConversationHandler.END
-    except ValueError:
-        await update.message.reply_text(texts[usr_lng]["textInvalidAmount"],
-                                        reply_markup=buttons[usr_lng]["back_menu_markup"])
-        return ENTER_AMOUNT
-    except Exception as e:
-        logger.error(f"Error in capture_amount function: {e}")
-    finally:
-        await update.message.delete()
-
-
-async def cancel_back_to_menu(update: Update, context: CallbackContext):
-    query: CallbackQuery = update.callback_query
-    await query.answer()
-    await menu_from_callback(query)
-    # print("Ending conversation...")  # Debug log
-    return ConversationHandler.END
-
-
-# endregion
 
 
 # region Products
@@ -856,22 +775,6 @@ def main() -> None:
         CommandHandler("menu", start_menu),
         CommandHandler("balance", user_balance),
         CommandHandler("timezone_set", timezone_hint),
-        ConversationHandler(
-            entry_points=[
-                CommandHandler("deposit", deposit_money),
-                CallbackQueryHandler(
-                    deposit_money_from_callback, pattern=f"^{deposit_cb}$"),
-            ],
-            states={
-                ENTER_AMOUNT: [MessageHandler(filters.TEXT & ~filters.COMMAND, capture_amount)],
-            },
-            fallbacks=[
-                CommandHandler("cancel", cancel_back_to_menu),
-                # For callback button
-                CallbackQueryHandler(cancel_back_to_menu,
-                                     pattern=f"^{main_menu_cb}$"),
-            ],
-        ),
         MessageHandler(filters.TEXT, delete_message),  # Performance issue
         MessageHandler(filters.LOCATION, get_user_location),
         CallbackQueryHandler(callback_query_handler),
