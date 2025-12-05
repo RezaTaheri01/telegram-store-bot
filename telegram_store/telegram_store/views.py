@@ -5,7 +5,7 @@ class HomePage(TemplateView):
     template_name = "home.html"
 
     def get_context_data(self, **kwargs):
-        BOT_LINK = config("BOT_LINK")
+        BOT_LINK = config("BOT_LINK", default="")
         context = super().get_context_data(**kwargs)
         context["bot_link"] = BOT_LINK
         return context

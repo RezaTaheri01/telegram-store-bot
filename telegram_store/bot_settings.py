@@ -18,9 +18,9 @@ from decouple import config
 # base on languages in telegram_store/setting.py
 LANG1, LANG2 = "ru", "en"
 
-TOKEN = config("TOKEN")
-UPDATE_SETTING_COMMAND = config("UPDATE_SETTING_COMMAND", "update")
-SITE_DOMAIN = config("SITE_DOMAIN", None)
+TOKEN = config("TOKEN", default="")
+UPDATE_SETTING_COMMAND = config("UPDATE_SETTING_COMMAND", default="update")
+SITE_DOMAIN = config("SITE_DOMAIN", default=None)
 
 SEP_LINE = r"\n" + "\_" * 40 + r"\n\n"
 SEP_LINE_HTML = "\n" + "_" * 40 + "\n\n"

@@ -24,13 +24,13 @@ SECRET_KEY = config(
     "SECRET_KEY", default='django-insecure-$kp!7e*2sv#%i%=qq(-#pspemkli#ruf_5i04(2q+eeoae_+2h')
 
 CSRF_TRUSTED_ORIGINS = [
-    config("SITE_DOMAIN"),
+    config("SITE_DOMAIN", default="https://"),
 ]
 
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = config('DEBUG', default=False, cast=bool)
 
-ALLOWED_HOSTS = config("ALLOWED_HOSTS").split(",")
+ALLOWED_HOSTS = config("ALLOWED_HOSTS", default="").split(",")
 
 # Application definition
 INSTALLED_APPS = [
