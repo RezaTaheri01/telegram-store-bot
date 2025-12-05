@@ -40,11 +40,15 @@ BOT_LINK=https://t.me/giftShop2025Bot
 
 SECRET_KEY=CHANGE_ME_IN_PRODUCTION
 
-DEBUG=True   # Set to False when deploying!
+# Set to False when deploying!
+DEBUG=True   
 
 # No slash at the end
 ALLOWED_HOSTS=localhost,127.0.0.1,your-domain.com
 ADMIN_URL=adminadmin
+
+# Local Storage Image Domain(Site Domain)
+# SITE_DOMAIN=https://
 
 # Database
 #DB_ENGINE=postgresql
