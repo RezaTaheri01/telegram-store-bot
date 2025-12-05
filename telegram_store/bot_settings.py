@@ -22,7 +22,7 @@ TOKEN = config("TOKEN", default="")
 UPDATE_SETTING_COMMAND = config("UPDATE_SETTING_COMMAND", default="update")
 SITE_DOMAIN = config("SITE_DOMAIN", default=None)
 
-SEP_LINE = f"\n{'\_' * 40}\n\n"
+SEP_LINE = "\n" + "\_" * 40 + "\n\n"
 SEP_LINE_HTML = "\n" + "_" * 40 + "\n\n"
 
 # region Multi language texts
