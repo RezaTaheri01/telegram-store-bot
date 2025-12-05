@@ -5,7 +5,7 @@ from . import models
 @admin.register(models.UserData)
 class AccountAdmin(admin.ModelAdmin):
     list_display = ["__str__"]
-    readonly_fields = ["id", "language", "utc_offset", "balance"]
+    readonly_fields = ["id", "language"]
     search_fields = ["id", "username"]
 
 
