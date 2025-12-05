@@ -1,6 +1,7 @@
 # Telegram Bot with Django Integration 📢💻
 
 This bot is a Python-based Telegram bot seamlessly integrated with a Django backend. It supports database management, payment handling, digital product selling, and dynamic user interactions.
+[Demo Link](t.me/gameStorePersiaBot)
 
 ---
 
