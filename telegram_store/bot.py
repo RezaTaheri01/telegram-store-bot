@@ -757,10 +757,20 @@ def get_user_purchases(user_id, start_index, limit):
 
 # Todo: Move it to website
 async def user_purchase_products(query: CallbackQuery) -> None:
+    def format_utc_offset(offset: float):
+        hours = int(offset)  # whole hours
+        minutes = int(abs(offset - hours) * 60)
+
+        formatted = f"{hours:+03d}:{minutes:02d}"
+
+        return formatted
+
     user_id = query.from_user.id
     usr_lng = await user_language(user_id)
     usr_utc_offset = await user_timezone(user_id)
 
+    formatted_utc_offset = format_utc_offset(usr_utc_offset)
+    
     try:
         temp: list = query.data.split('_')
         if len(temp) == 1:
@@ -807,8 +817,9 @@ async def user_purchase_products(query: CallbackQuery) -> None:
             result_data += texts[usr_lng]["textProductDetailList"].format(
                 product_name,
                 formatted_time,
+                formatted_utc_offset,
                 p.details,
-            )
+            ) + SEP_LINE
 
         # Pagination buttons
         products_keys = []
@@ -848,7 +859,8 @@ async def user_purchase_products(query: CallbackQuery) -> None:
 
         await send_message(query=query,
                            txt=result_data,
-                           reply_markup=products_markup)
+                           reply_markup=products_markup,
+                           parse_mode="Markdown")
 
     except Exception as e:
         logger.error(f"Error in user_purchase_products function: {e}")

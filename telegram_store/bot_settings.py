@@ -22,7 +22,7 @@ TOKEN = config("TOKEN", default="")
 UPDATE_SETTING_COMMAND = config("UPDATE_SETTING_COMMAND", default="update")
 SITE_DOMAIN = config("SITE_DOMAIN", default=None)
 
-SEP_LINE = "\n" + "\_" * 40 + "\n\n"
+SEP_LINE = "\n`" + "_" * 30 + "`\n\n"
 SEP_LINE_HTML = "\n" + "_" * 40 + "\n\n"
 
 # region Multi language texts
@@ -66,7 +66,7 @@ texts = {
         "textProductDetail": "✅ Покупка успешна!\n\n🔑 {}",
         "textPaymentFailed": "❌ Платеж не прошел. Пожалуйста, попробуйте снова",
         "textTransactionDetail": "💱 *Курс:* 1 TON = `{}` {}\n🆔 Транзакция: `{}`\n💳 Сумма: `{}` TON\n📅 Дата: {}{}",
-        "textProductDetailList": "🛍 Товар: {}\n📅 Дата: {}\n📦 Детали: {}\n\n",
+        "textProductDetailList": "🛍 Товар: {}\n📅 Дата: {}{}\n📦 Детали: `{}`",
         "textPrev": "⬅️ Предыдущая",
         "textNext": "➡️ Следующая",
         "textTimezone": "🌍 Отправьте местоположение для установки часового пояса",
@@ -121,7 +121,7 @@ texts = {
         "textProductDetail": "✅ Purchase successful!\n\n🔑 {}",
         "textPaymentFailed": "❌ Payment failed. Please try again",
         "textTransactionDetail": "💱 *Exchange rate:* 1 TON = `{}` {}\n🆔 Tx: `{}`\n💳 Amount: `{}` TON\n📅 Date: {}{}",
-        "textProductDetailList": "🛍 Product: {}\n📅 Date: {}\n📦 Details: {}\n\n",
+        "textProductDetailList": "🛍 Product: {}\n📅 Date: {}{}\n📦 Details: `{}`",
         "textPrev": "⬅️ Previous",
         "textNext": "➡️ Next",
         "textTimezone": "🌍 Send your location to set your timezone",
