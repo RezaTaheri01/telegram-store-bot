@@ -211,6 +211,16 @@ async def get_ton_price():
     currency = s.wallet_currency.lower()
 
     apis = [
+        {     
+            # 1 requests per second
+            # https://toncenter.com/api/       
+            "url": "https://tonapi.io/v2/rates",
+            "params": {"tokens": "ton",
+                       "currencies": currency,
+                       "api_key": s.ton_api_io_key},
+            "headers": None,
+            "parse": lambda data: data["rates"]["TON"]["prices"][currency.upper()] 
+        },
         {
             # free tier 10k/month
             "url": "https://api.coingecko.com/api/v3/simple/price",

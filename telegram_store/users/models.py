@@ -84,6 +84,9 @@ class BotSettings(models.Model):
     cmc_api_key = models.CharField(max_length=256, verbose_name="CoinMarketCap API Key",
                                    help_text="Get api key from https://coinmarketcap.com/api/pricing/")
     
+    ton_api_io_key = models.CharField(max_length=256, verbose_name="tonapi.io API Key",
+                                   help_text="Get api key from https://tonapi.io/", null=True)
+    
     telegram_wallet_link = models.CharField(max_length=256, verbose_name="@Wallet",
                                             default="https://t.me/wallet/start?startapp=tonspace_main")
 
