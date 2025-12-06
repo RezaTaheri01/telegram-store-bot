@@ -65,7 +65,7 @@ class BotSettings(models.Model):
     )
     ton_network_delay = models.PositiveIntegerField(
         verbose_name="TON Network Delay (seconds)",
-        help_text="Interval between deposit address checks."
+        help_text="Interval between deposit address checks(Fetch transactions)"
     )
     
     failed_transactions_delay = models.PositiveIntegerField(
@@ -84,7 +84,8 @@ class BotSettings(models.Model):
     cmc_api_key = models.CharField(max_length=256, verbose_name="CoinMarketCap API Key",
                                    help_text="Get api key from https://coinmarketcap.com/api/pricing/")
     
-    telegram_wallet_link = models.CharField(max_length=256, verbose_name="@Wallet")
+    telegram_wallet_link = models.CharField(max_length=256, verbose_name="@Wallet",
+                                            default="https://t.me/wallet/start?startapp=tonspace_main")
 
     disable_product_images = models.BooleanField(
         verbose_name="Disable Product Images",
