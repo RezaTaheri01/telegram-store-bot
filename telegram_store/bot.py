@@ -1348,14 +1348,21 @@ async def error_handler(update: Update, context: CallbackContext):
 
 async def user_language(user_id: int):
     try:
-        if user_id not in language_cache:
-            user = await sync_to_async(UserData.objects.filter(id=user_id).first, thread_sensitive=True)()
-            if not user:
-                language_cache[user_id] = LANG1
-                return LANG1
-            language_cache[user_id] = user.language
+        if user_id in language_cache:
+            return language_cache[user_id]
 
-        return language_cache[user_id]
+        user = await sync_to_async(UserData.objects.filter(id=user_id).first, thread_sensitive=True)()
+        if not user:
+            language_cache[user_id] = LANG1
+            return LANG1
+
+        if user.language not in texts:
+            user.language = LANG1
+            await sync_to_async(user.save, thread_sensitive=True)()
+
+        language_cache[user_id] = user.language
+        return user.language
+
     except:
         return LANG1
 
