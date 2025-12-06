@@ -558,7 +558,9 @@ async def pay_link(update: Update, context: ContextTypes.DEFAULT_TYPE, query: Ca
                             txt=texts[usr_lng]["textErrorNoPrice"],
                             reply_markup=buttons[usr_lng]["balance_markup"])
         return
-
+    
+    await check_create_account(update)
+    
     link = await generate_ton_link(user_id, s.ton_deposit_address)
 
     text = (
