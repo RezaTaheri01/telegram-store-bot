@@ -1,4 +1,3 @@
-# Todo: Re-check this steps
 """
 Steps to add a new language:(also you can remove language by these steps)
 
