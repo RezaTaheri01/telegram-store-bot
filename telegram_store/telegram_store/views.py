@@ -1,13 +1,21 @@
 from django.views.generic import TemplateView
 from decouple import config
+from users.models import UserData
+
 
 class HomePage(TemplateView):
     template_name = "home.html"
 
     def get_context_data(self, **kwargs):
-        BOT_LINK = config("BOT_LINK", default="")
         context = super().get_context_data(**kwargs)
+        
+        # Add bot link
+        BOT_LINK = config("BOT_LINK", default="")
         context["bot_link"] = BOT_LINK
+        
+        # Add user count
+        context["user_count"] = UserData.objects.count()
+        
         return context
 
 # region Control Bots
