@@ -60,10 +60,11 @@ logger.addHandler(handler)
 
 # region Global Variables
 # TTLCache: maxsize 1 because you only have one settings object, TTL 10 minutes
-ton_price: TTLCache = TTLCache(maxsize=1, ttl=3600)
+ton_price: TTLCache = TTLCache(maxsize=1, ttl=600)
 settings_cache: TTLCache = TTLCache(maxsize=1, ttl=600)
-language_cache: TTLCache = TTLCache(maxsize=1000, ttl=600)
-timezone_cache: TTLCache = TTLCache(maxsize=1000, ttl=600)
+
+language_cache: LRUCache = LRUCache(maxsize=1000)
+timezone_cache: LRUCache = LRUCache(maxsize=1000)
 seen_hashes_cache: LRUCache = LRUCache(maxsize=10000) # keep 10k most recent tx hashes
 
 lang_keys = list(texts.keys())
@@ -204,67 +205,79 @@ def record_failed_tx(tx_hash, amount, comment, price, price_currency, lt=None):
     except:
         return False
 
-# Todo: add retry
-async def get_ton_price():
+
+async def get_ton_price() -> bool:
     global ton_price
-    s: BotSettings = await get_settings()
-    currency = s.wallet_currency.lower()
 
-    apis = [
-        {     
-            # 1 requests per second
-            # https://toncenter.com/api/       
-            "url": "https://tonapi.io/v2/rates",
-            "params": {"tokens": "ton",
-                       "currencies": currency,
-                       "api_key": s.ton_api_io_key},
-            "headers": None,
-            "parse": lambda data: data["rates"]["TON"]["prices"][currency.upper()] 
-        },
-        {
-            # free tier 10k/month
-            "url": "https://api.coingecko.com/api/v3/simple/price",
-            "params": {"ids": "the-open-network", "vs_currencies": currency},
-            "headers": None,
-            "parse": lambda data: data.get("the-open-network", {}).get(currency)
-        },
-        {
-            # CMC (paid/free key)
-            "url": "https://pro-api.coinmarketcap.com/v1/cryptocurrency/quotes/latest",
-            "params": {"symbol": "TON", "convert": currency.upper()},
-            "headers": {"X-CMC_PRO_API_KEY": s.cmc_api_key},
-            "parse": lambda data: data["data"]["TON"]["quote"][currency.upper()]["price"]
-        }
-    ]
+    try:
+        s: BotSettings = await get_settings()
+        currency = s.wallet_currency.lower()
+        currency_upper = currency.upper()
 
-    for api in apis:
-        try:
-            async with aiohttp.ClientSession() as session:
-                resp = await session.get(
-                    api["url"],
-                    params=api.get("params"),
-                    headers=api.get("headers"),
-                    timeout=5
-                )
-                
-                if resp.status != 200:
-                    logger.warning(f"HTTP {resp.status} from {api['url']}")
-                    continue
+        apis = [
+            {
+                # tonapi.io
+                "url": "https://tonapi.io/v2/rates",
+                "params": {
+                    "tokens": "ton",
+                    "currencies": currency,
+                    "api_key": s.ton_api_io_key
+                },
+                "headers": None,
+                "parse": lambda data: data["rates"]["TON"]["prices"].get(currency_upper)
+            },
+            {
+                # coingecko
+                "url": "https://api.coingecko.com/api/v3/simple/price",
+                "params": {"ids": "the-open-network", "vs_currencies": currency},
+                "headers": None,
+                "parse": lambda data: data.get("the-open-network", {}).get(currency)
+            },
+            {
+                # CMC
+                "url": "https://pro-api.coinmarketcap.com/v1/cryptocurrency/quotes/latest",
+                "params": {"symbol": "TON", "convert": currency_upper},
+                "headers": {"X-CMC_PRO_API_KEY": s.cmc_api_key},
+                "parse": lambda data: data["data"]["TON"]["quote"][currency_upper]["price"]
+            },
+        ]
+    except Exception as e:
+        logger.error(f"error in get_ton_price() apis list: {e}")
+        return False
 
-                data = await resp.json()
-                
-                price = api["parse"](data)
-                if price is not None:
-                    ton_price.update(price=round(float(price), 3))
-                    return ton_price
+    try:
+        async with aiohttp.ClientSession() as session:
+            for api in apis:
+                try:
+                    resp = await session.get(
+                        api["url"],
+                        params=api.get("params"),
+                        headers=api.get("headers"),
+                        timeout=5
+                    )
 
-                logger.warning(f"Price not found in {api['url']} response")
+                    if resp.status != 200:
+                        logger.warning(f"HTTP {resp.status} from {api['url']}")
+                        continue
 
-        except Exception as e:
-            logger.warning(f"Failed fetching price from {api['url']}: {e}")
+                    data = await resp.json()
+                    price = api["parse"](data)
+
+                    if price is not None:
+                        ton_price.update(price=round(float(price), 3))
+                        return True
+
+                    logger.warning(f"Price missing in response from {api['url']}")
+
+                except Exception as e:
+                    logger.warning(f"Error fetching from {api['url']}: {e}")
+
+    except Exception as e:
+        logger.error(f"ClientSession error: {e}")
+        return False
 
     logger.error("All TON price APIs failed")
-    return None
+    return False
 
 
 async def ton_price_job():
@@ -277,8 +290,8 @@ async def ton_price_job():
 """ 
 Todo 
 * Handle High traffic / large number of transactions
-* Ensuring atomic updates (no double spend, no missed credits)
-* Retrying failed transactions
+* Ensuring atomic updates (no double spend, no missed credits) Done
+* Retrying failed transactions Done
 """
 @sync_to_async
 def apply_transaction(user_id, ton_amount, tx_hash, balance_update: Decimal, wallet_currency, comment, lt=None) -> bool:
