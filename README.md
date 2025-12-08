@@ -1,43 +1,75 @@
-# Telegram Store Bot 🛒
+# Telegram Store Bot 🛒⚡
 
-## Overview 📌
+![Python](https://img.shields.io/badge/python-3.11+-blue.svg) ![Django](https://img.shields.io/badge/django-admin-green.svg) ![TON](https://img.shields.io/badge/TON-v3-orange.svg) ![License: GPL v3](https://img.shields.io/badge/License-GPLv3-blue.svg)
 
-This is a Telegram bot for managing a store where users can view products, make purchases using TON cryptocurrency, and manage their accounts. It integrates with Django ORM for database operations, supports multi-language, and tracks transactions securely.
+A fast, reliable Telegram store bot that allows users to **browse products, top up balances using TON cryptocurrency, and purchase items** — all from Telegram.
 
-## Features ✨
+**Django** is used only for the admin panel and ORM models; the bot runs as a standalone async application (`bot.py`).
 
-* User registration and account management 👤
+---
+
+## Table of Contents
+1. [Features ✨](#features)
+2. [Highlights 🚀](#highlights)
+3. [Setup & Installation 🛠️](#setup--installation)
+4. [Bot Commands 📋](#bot-commands)
+5. [TON Polling Overview 🧭](#ton-polling-overview)
+6. [Database Notes ⚙️](#database-notes)
+7. [Best Practices ✅](#best-practices)
+8. [Architecture Diagram 🧩](#architecture-diagram)
+9. [Security & Privacy 🔐](#security--privacy)
+10. [Testing & Development 🧪](#tests--development)
+11. [License 📜](#license)
+12. [Disclaimer 🤖](#disclaimer)
+
+---
+
+## Features
+
 * Product browsing by categories 🏷️
 * Purchase products using TON cryptocurrency 💰
 * Generate TON payment links 🔗
 * Track user transactions and purchase history 📝
-* Background tasks to fetch TON prices and process transactions ⏱️
+* Background tasks: TON price updater, transaction processor ⏱️
 * Multi-language support 🌐
 * Timezone handling ⏰
-* Retry failed transactions 🔄
 
-## Setup & Installation 🛠️
+---
 
-1. Clone the repository:
+## Highlights
+
+* **TON Center API v3** integration with pagination — ensures no on-chain transactions are missed.
+* Thread-safe async usage of Django ORM (`sync_to_async(thread_sensitive=True)`).
+* Atomic, idempotent transaction processing — prevents double-crediting.
+* Purchases lock **only one `ProductDetail` row** at a time.
+* LRUCache for recent TX deduplication; TTL caches for settings and price.
+* Clean separation: Django for admin & ORM; bot runs independently.
+
+---
+
+## Setup & Installation
+
+1. **Clone repository:**
 
 ```bash
 git clone --branch TON-payment https://github.com/RezaTaheri01/telegram-store-bot.git
 cd telegram-store-bot/telegram_store
 ```
 
-2. Install dependencies(venv recommended):
+2. **Install dependencies (use [virtualenv](https://www.w3schools.com/python/python_virtualenv.asp) recommended):**
 
 ```bash
 pip install -r req.txt
 ```
 
-3. Collect static files:
+3. **Collect static files:**
 
 ```bash
 python manage.py collectstatic --noinput
 ```
 
-4. Set environment variables in `.env` or `bot_settings.py`:
+4. **Create a `.env` file:**
+
 
 ```env
 # Bot Token(@BotFather)
@@ -70,90 +102,125 @@ ADMIN_URL=adminadmin
 #DB_PORT=5432
 ```
 
-5. Configure Django settings and run migrations:
+5. **Run migrations & create superuser:**
 
 ```bash
 python manage.py makemigrations users payment products
 python manage.py migrate
-python manage.py createsuperuser
+python createsuperuser
 ```
 
-6. Start Django Backend:
+6. **Start Django backend:**
 
 ```bash
 python manage.py runserver
 ```
 
-7. Open the Django admin panel and create a Bot Settings entry. Recommended values:
+7. **Configure Bot Settings** in Django Admin:
 
-    • **Wallet Currency**  
-    Use standard 3-letter uppercase currency codes like USD
+* Wallet Currency: 3-letter code (USD)
+* TON Price Delay: 120s
+* TON Fetch Limit: 250
+* TON Network Delay: 10s
+* Optional: Disable Product Images for faster UI
 
-    • **TON Price Delay (seconds):** 120  
-    How often the bot refreshes the live TON price.
-
-    • **TON Fetch Limit:** 500  
-    Increase this if you have many active users or high transaction volume.
-
-    • **TON Network Delay (seconds):** 10  
-    Interval for checking new on-chain transactions. Reduce for faster detection.
-
-    • **Failed Transactions Delay (seconds):** 240  
-    These are already stored in the database, so checking less often is fine.
-
-    • **Disable Product Images**  
-    Turn this on for a cleaner UI and faster loading in Telegram.
-
-    • **API Keys**  
-    All required API keys for the bot are free to obtain.
-
-
-
-8. Start the bot:
+8. **Start the bot:**
 
 ```bash
 python bot.py
 ```
 
-## Bot Commands 📋
+---
 
-* `/start` - Start the bot and display main menu 🚀
-* `/menu` - Show main menu 🏠
-* `/balance` - Check user balance 💵
-* `/pay` - Generate TON payment link 🔗
-* `/set_timezone` -  Change user timezone base on location 🗺️
-* `Update Settings` - Refresh bot settings ⚙️
+## Bot Commands
 
-## User Flow 🔄
+* `/start` – Start the bot and show main menu
+* `/menu` – Show main menu
+* `/balance` – Check balance
+* `/pay` – Generate TON payment link
+* `/set_timezone` – Set timezone based on location
+* `Update Settings` – Refresh bot settings
 
-1. Users start the bot and create an account.
-2. Users browse product categories and select products.
-3. TON payment links are generated for users to charge their account.
-4. Users can view transactions and purchase history.
-5. Background jobs handle TON price updates, transaction polling, and failed transaction retries.
+> **Note:** For `/set_timezone` to work, uncomment the relevant command handlers in `bot.py`.
 
-## Caching & Optimization ⚡
+---
 
-* **TTLCache** for settings, language, timezone, and TON price.
-* **LRUCache** for recent transaction hashes.
-* Async and sync_to_async functions for Django ORM to support non-blocking operations.
+## TON Polling Overview
 
-## Error Handling 🛡️
+1. Read `TonCursor` (`last_lt`, `last_hash`) from DB.
+2. Request transactions via TON v3 API.
+3. Process results **oldest → newest** for idempotency.
+4. Each transaction:
 
-* Rotating log files (5 MB each, 5 backups) for errors and warnings.
-* Global error handler for bot exceptions.
-* Retry mechanism for sending messages and failed transactions.
+   * Normalize `hash` (lowercase)
+   * Skip if already in cache/DB
+   * Ensure user exists
+   * Update balance inside `transaction.atomic()` with `select_for_update()`
+   * Record transaction
+   * Add hash to cache after successful processing
+5. Update `TonCursor` only after processing completes.
 
-## Notes & TODO 📌
+This ensures **no transactions are skipped** and **no double-processing occurs**.
 
-* Handle high traffic and large number of transactions.
-* Optionally move background tasks to Django Celery for better scaling.
+---
 
-## Tech Stack 🖥️
+## Database Notes
 
-* Python 3.11+
-* Django ORM
-* `python-telegram-bot` v20+
-* Aiohttp for async HTTP requests
-* Cachetools for caching
-* Timezone handling with `pytz` and `timezonefinder` (Timezone need to be enabled in bot.py main function)
+* `TonCursor` → `last_lt` (BigInteger) & `last_hash` (char 128)
+* `Transaction.tx_id` should be unique
+* `ProductDetail` → inventory rows; lock **one row per purchase** with `select_for_update(skip_locked=True)`
+
+---
+
+## Best Practices
+
+* Use **PostgreSQL** in production (SQLite is fragile for locking).
+* Keep `TON Fetch Limit` moderate (100–500) based on load.
+* Monitor LRU cache size (default: 10,000 entries).
+* Run `bot.py` as a **background worker/service**.
+* Separate **web (Django)** and **bot (worker)** processes.
+
+---
+
+## Architecture Diagram
+
+```mermaid
+flowchart LR
+    User[Telegram User] -->|uses| Bot(bot.py - Async)
+    Bot -->|reads/writes| DjangoORM[Django ORM]
+    DjangoORM -->|admin UI| DjangoAdmin[Admin Panel]
+    Bot -->|polls transactions| TONAPI[TON API v3]
+    TONAPI --> Bot
+    DjangoORM --> Database[(PostgreSQL / SQLite)]
+```
+
+---
+
+## Security & Privacy
+
+* Keep `SECRET_KEY` and API keys **out of source control**.
+* Use **HTTPS** for webhooks (if switching to webhook mode).
+* Validate and sanitize user input.
+
+---
+
+## Tests & Development
+
+* Manual testing for payment flows recommended.
+* Unit tests suggested for:
+
+  * `apply_transaction()` atomic behavior
+  * `TonCursor` updates
+  * Polling edge cases
+
+---
+
+## License
+
+GPL-3.0 — see `LICENSE` file.
+
+---
+
+## Disclaimer
+
+Parts of this README were assisted by AI. All final code and implementation decisions were made manually by the author.
