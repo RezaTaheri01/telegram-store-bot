@@ -1233,10 +1233,15 @@ async def payment(update: Update, context: CallbackContext, query: CallbackQuery
             if user.balance < payment_amount:
                 return "not_enough", None, None
 
-            # Lock product row and fetch related Product
-            product_detail = ProductDetail.objects.select_for_update().select_related('product').filter(
-                product_id=prod_id, is_purchased=False
+            # Lock product row and fetch related Product            
+            product_detail = (
+                ProductDetail.objects
+                .select_for_update()
+                .select_related('product')
+                .filter(product_id=prod_id, is_purchased=False)
+                .order_by('id')[:1]  # limits the lock to only one row
             ).first()
+            
             if not product_detail:
                 return "sold_out", None, None
 
