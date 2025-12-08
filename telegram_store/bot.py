@@ -30,7 +30,7 @@ from django.utils import timezone
 # Django
 import os
 import django
-from django.db import transaction
+from django.db import transaction, IntegrityError
 from django.db.models import Exists, OuterRef
 
 os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'telegram_store.settings')
@@ -73,6 +73,7 @@ lang_keys = list(texts.keys())
 
 # region setting
 
+@sync_to_async(thread_sensitive=True)
 def _get_settings_sync():
     # Check cache first
     if "settings" in settings_cache:
@@ -88,12 +89,13 @@ def _get_settings_sync():
 
 
 async def get_settings():
-    return await sync_to_async(_get_settings_sync)()
+    return await _get_settings_sync()
 
 
 async def update_setting(update: Update, context: CallbackContext) -> None:
     # Clear cached settings manually
     settings_cache.clear()
+    seen_hashes_cache.clear()
     await update.message.delete()
     
 # endregion
@@ -171,42 +173,9 @@ async def user_balance(update: Update, context: CallbackContext, query: Callback
 # endregion
 
 
-# region TON
+# region TON price
 
-@sync_to_async
-def get_last_lt() -> int:
-    obj, _ = TonCursor.objects.get_or_create(key="deposit_cursor", defaults={"last_lt": 0})
-    return obj.last_lt
-
-
-@sync_to_async
-def update_last_lt(new_lt):
-    with transaction.atomic():
-        cursor = TonCursor.objects.select_for_update().get(key="deposit_cursor")
-        cursor.last_lt = new_lt
-        cursor.save()
-
-     
-@sync_to_async
-def record_failed_tx(tx_hash, amount, comment, price, price_currency, lt=None):
-    try:
-        Transaction.objects.update_or_create(
-            tx_id=str(tx_hash),  # lookup field
-            defaults={           # fields to update or create
-                "lt": lt,
-                "amount": Decimal(amount),
-                "comment": str(comment),
-                "price_per_ton": Decimal(price),
-                "price_currency": str(price_currency),
-                "atomic_failed": True
-            }
-        )
-        return True
-    except:
-        return False
-
-
-async def get_ton_price() -> bool:
+async def get_ton_price():
     global ton_price
 
     try:
@@ -243,7 +212,7 @@ async def get_ton_price() -> bool:
         ]
     except Exception as e:
         logger.error(f"error in get_ton_price() apis list: {e}")
-        return False
+        return None
 
     try:
         async with aiohttp.ClientSession() as session:
@@ -265,7 +234,7 @@ async def get_ton_price() -> bool:
 
                     if price is not None:
                         ton_price.update(price=round(float(price), 3))
-                        return True
+                        return ton_price.get("price")
 
                     logger.warning(f"Price missing in response from {api['url']}")
 
@@ -274,10 +243,10 @@ async def get_ton_price() -> bool:
 
     except Exception as e:
         logger.error(f"ClientSession error: {e}")
-        return False
+        return None
 
     logger.error("All TON price APIs failed")
-    return False
+    return None
 
 
 async def ton_price_job():
@@ -286,18 +255,36 @@ async def ton_price_job():
         await get_ton_price()
         await asyncio.sleep(s.ton_price_delay)
 
+# endregion
 
-""" 
-Todo 
-* Handle High traffic / large number of transactions
-* Ensuring atomic updates (no double spend, no missed credits) Done
-* Retrying failed transactions Done
-"""
-@sync_to_async
-def apply_transaction(user_id, ton_amount, tx_hash, balance_update: Decimal, wallet_currency, comment, lt=None) -> bool:
+
+# region Ton
+@sync_to_async(thread_sensitive=True)
+def get_last_lt_hash() -> int:
+    obj, _ = TonCursor.objects.get_or_create(key="deposit_cursor", defaults={"last_lt": 0, "last_hash": None})
+    return obj.last_lt, obj.last_hash
+
+
+@sync_to_async(thread_sensitive=True)
+def update_last_lt_hash(new_lt, new_hash):
+    with transaction.atomic():
+        cursor = TonCursor.objects.select_for_update().get(key="deposit_cursor")
+        cursor.last_lt = new_lt
+        cursor.last_hash = new_hash
+        cursor.save()
+
+
+@sync_to_async(thread_sensitive=True)
+def apply_transaction(user_id,
+                      ton_amount,
+                      tx_hash,
+                      balance_update: Decimal,
+                      wallet_currency,
+                      comment,
+                      price,
+                      lt=None) -> bool:
     try:
         with transaction.atomic():
-            price = ton_price.get("price")
             if price is None:
                 return False
             
@@ -315,153 +302,198 @@ def apply_transaction(user_id, ton_amount, tx_hash, balance_update: Decimal, wal
                 price_per_ton=Decimal(price),
                 price_currency=wallet_currency
             )
-
+            
         return True
+    except IntegrityError:
+        # Already recorded — treat as success to avoid double crediting
+        logger.info(f"Transaction {tx_hash} already exists (IntegrityError).")
+        return None
     except Exception as e:
         logger.error(f"Atomic rolled back in apply_transaction(): {e}")
         return False
 
 
+@sync_to_async(thread_sensitive=True)
+def ensure_user_exists(user_id):
+    # Will raise Django DB exceptions if DB is unhealthy
+    user, created = UserData.objects.get_or_create(
+        id=user_id,
+        defaults={"first_name": "User"}
+    )
+    return user
+
+
 # https://toncenter.com/api/
 async def ton_polling(app):
-    ton_api_url = "https://toncenter.com/api/v2/getTransactions"
+    # canonicalize comparators
+    def _is_later(lt, hash_, cur_lt, cur_hash):
+        # compare (lt, hash) lexicographically; treat None as ""
+        return (lt, hash_ or "") > (cur_lt, cur_hash or "")
+
     s: BotSettings = await get_settings()
-
-    params = {
-        "address": s.ton_deposit_address,
-        "limit": s.ton_fetch_limit,
-        "api_key": s.ton_network_api_key,
-    }
-
-    try:
-        async with aiohttp.ClientSession() as session:
-            async with session.get(ton_api_url, params=params) as resp:
-                data = await resp.json()
-    except Exception as e:
-        logger.error(f"Failed to fetch TON transactions: {e}")
-        return
-
-    price = ton_price.get("price")
-    if price is None:
-        await get_ton_price()
-        logger.warning("TON price not available, skipping transaction processing")
-        return
-
-    last_transaction_lt = await get_last_lt()
+    batch_limit = s.ton_fetch_limit or 200
+    ton_api_url = "https://toncenter.com/api/v3/transactions"
+    last_transaction_lt, last_transaction_hash = await get_last_lt_hash()
+    timeout = aiohttp.ClientTimeout(total=10)
     
-    # Extract & filter NEW transactions
-    txs = data.get("result", [])
-    new_txs = []
-    for tx in txs:
-        tx_id = tx.get("transaction_id", {})
-        tx_lt = tx_id.get("lt")
-        if tx_lt is None:
-            continue
-        if int(tx_lt) > last_transaction_lt:
-            new_txs.append(tx)
-
-    if not new_txs:
+    offset = 0
+    run = True
+    
+    price = ton_price.get("price") or await get_ton_price()            
+    if price is None:
         return
-
-    # Sort by lt ASC → oldest first
-    new_txs.sort(key=lambda t: t["transaction_id"]["lt"])
-
-    max_success_lt = last_transaction_lt
-
-    # Process each transaction
-    for tx in new_txs:
-        tx_id = tx.get("transaction_id", {})
-        tx_hash = tx_id.get("hash")
-        tx_lt = tx_id.get("lt")
-
-        try:
-            if not tx_hash or tx_hash in seen_hashes_cache:
-                continue
-            seen_hashes_cache[tx_hash] = True
-
-            msg = tx.get("in_msg", {})
-            comment_hex = msg.get("message", "").strip()
-            value = int(msg.get("value", 0))
-
-            if not comment_hex:
-                continue
+    
+    overall_max_lt = last_transaction_lt
+    overall_max_hash = last_transaction_hash
+    
+    async with aiohttp.ClientSession() as session:         
+        while run:  # Paging through transactions with same start_lt            
+            params = {
+                "account": s.ton_deposit_address,
+                "start_lt": last_transaction_lt,
+                "limit": batch_limit,
+                "offset": offset,
+                "sort": "asc",
+                "api_key": s.ton_network_api_key,
+            }
 
             try:
-                user_id = int(comment_hex, 16)
-            except ValueError:
-                logger.warning(f"Invalid comment (not hex): {comment_hex}")
-                continue
-
-            # Check if tx exists
-            exists = await sync_to_async(
-                lambda: Transaction.objects.filter(
-                    comment=comment_hex, tx_id=tx_hash
-                ).exists(),
-                thread_sensitive=True,
-            )()
-            if exists:
-                continue
-
-            # Check user exists
-            user_exist = await sync_to_async(
-                lambda: UserData.objects.filter(id=user_id).exists(),
-                thread_sensitive=True,
-            )()
-            if not user_exist:
-                logger.warning(f"User not found for id {user_id}")
-                continue
-
-            # Calculate TON deposit
-            ton_amount = value / 1e9
-            balance_update = Decimal(ton_amount) * Decimal(price)
-
-            # Apply transaction atomically
-            s: BotSettings = await get_settings()
-            success = await apply_transaction(
-                user_id, ton_amount, tx_hash, balance_update, s.wallet_currency, comment_hex, tx_lt
-            )
-
-            if not success:
-                logger.warning(f"Failed atomic apply_transaction for lt {tx_lt}")
-                res = await record_failed_tx(tx_hash=tx_hash,
-                                             amount=ton_amount,
-                                             comment=comment_hex,
-                                             price=price,
-                                             price_currency=s.wallet_currency,
-                                             lt=tx_lt,
-                                            )
-                if not res and tx_hash in seen_hashes_cache:
-                    del seen_hashes_cache[tx_hash] 
-                else:   
-                    # Mark LT as successfully processed
-                    max_success_lt = int(tx_lt)
-                continue
-
-            # Mark LT as successfully processed
-            max_success_lt = int(tx_lt)
-
-            # Notify user
-            try:
-                usr_lng = await user_language(user_id)
-                text = texts[usr_lng]["textChargeAccount"].format(
-                    ton_amount, price, s.wallet_currency
-                )
-                await send_message_with_retry(
-                    bot=app.bot, chat_id=user_id, text=text,
-                    retry=2, parse_mode="Markdown"
-                )
+                async with session.get(ton_api_url, params=params, timeout=timeout) as resp:
+                    if resp.status != 200:
+                        text = await resp.text()
+                        logger.error(f"TON API error {resp.status}: {text}")
+                        break  # stop paging
+                    
+                    data = await resp.json()
             except Exception as e:
-                logger.warning(f"Failed to notify user {user_id}: {e}")
+                logger.error(f"Failed to fetch TON transactions: {e}")
+                break  # Retry in next polling iteration
 
-        except Exception as e:
-            if tx_hash and tx_hash in seen_hashes_cache:
-                del seen_hashes_cache[tx_hash]
-            logger.error(f"Error processing transaction {tx}: {e}")
-            break  # STOP. Do not skip ahead.
+            txs = data.get("transactions", [])
+            if not txs:
+                break  # no more transactions for this start_lt
+            
+            for tx in txs:
+                try:
+                    tx_hash = tx.get("hash")
+                    tx_lt = int(tx.get("lt"))
+                    
+                    if tx_hash is None or tx_lt is None:
+                        continue
+                    
+                    tx_hash = tx_hash.lower()
 
-    # Update last_transaction_lt ONLY AFTER all successful operations
-    if max_success_lt > last_transaction_lt:
-        await update_last_lt(max_success_lt)
+                    # Skip already seen
+                    if tx_hash in seen_hashes_cache:
+                        if _is_later(tx_lt, tx_hash, overall_max_lt, overall_max_hash):
+                            overall_max_lt, overall_max_hash = tx_lt, tx_hash
+                        continue
+                                        
+                    # message & comment extraction (defensive)
+                    msg = tx.get("in_msg", {})
+                    comment_hex = msg.get("message_content", {}).get("decoded", {}).get("comment")
+                    if comment_hex is None:
+                        if _is_later(tx_lt, tx_hash, overall_max_lt, overall_max_hash):
+                            overall_max_lt, overall_max_hash = tx_lt, tx_hash
+                        continue
+
+                    try:
+                        user_id = int(comment_hex, 16)
+                    except ValueError:
+                        logger.warning(f"Invalid comment (not hex): {comment_hex}")
+                        if _is_later(tx_lt, tx_hash, overall_max_lt, overall_max_hash):
+                            overall_max_lt, overall_max_hash = tx_lt, tx_hash
+                        continue
+                    
+                    # Check if user exist, If not create
+                    try:
+                        await ensure_user_exists(user_id)
+                    except Exception as e:
+                        # DB is not in a good state → abort this entire polling loop
+                        logger.error(f"DB error while ensuring user {user_id}: {e}")
+                        run = False
+                        break
+                                        
+                    # Skip if already in DB
+                    exists = await sync_to_async(
+                        lambda: Transaction.objects.filter(comment=comment_hex, tx_id=tx_hash).exists(),
+                        thread_sensitive=True
+                    )()
+                    if exists:
+                        # mark as seen and advance cursor
+                        seen_hashes_cache[tx_hash] = True
+                        if _is_later(tx_lt, tx_hash, overall_max_lt, overall_max_hash):
+                            overall_max_lt, overall_max_hash = tx_lt, tx_hash
+                        continue
+
+                    # Apply transaction
+                    value = int(msg.get("value", 0))
+                    if value == 0:
+                        if _is_later(tx_lt, tx_hash, overall_max_lt, overall_max_hash):
+                            overall_max_lt, overall_max_hash = tx_lt, tx_hash
+                        continue                    
+                  
+                    ton_amount = value / 1e9
+                    balance_update = Decimal(ton_amount) * Decimal(price)
+
+                    success = await apply_transaction(
+                        user_id=user_id,
+                        ton_amount=ton_amount,
+                        tx_hash=tx_hash,
+                        balance_update=balance_update,
+                        wallet_currency=s.wallet_currency,
+                        comment=comment_hex,
+                        price=price,
+                        lt=tx_lt
+                    )
+                    
+                    if success is None: # Integrity Error
+                        seen_hashes_cache[tx_hash] = True
+                        if _is_later(tx_lt, tx_hash, overall_max_lt, overall_max_hash):
+                            overall_max_lt, overall_max_hash = tx_lt, tx_hash
+                        continue
+                    if success == False: # price is None or atomic fail
+                        seen_hashes_cache.pop(tx_hash, None)
+                        logger.warning(f"Failed to apply transaction {tx_hash}")
+                        run = False
+                        break
+                    
+                    seen_hashes_cache[tx_hash] = True
+                    
+                    # Notify user
+                    try:
+                        usr_lng = await user_language(user_id)
+                        text = texts[usr_lng]["textChargeAccount"].format(
+                            ton_amount, price, s.wallet_currency
+                        )
+                        await send_message_with_retry(
+                            bot=app.bot, chat_id=user_id, text=text,
+                            retry=2, parse_mode="Markdown"
+                        )
+                    except Exception as e:
+                        logger.warning(f"Failed to notify user {user_id}: {e}")
+                            
+                    # Update overall_max_lt/hash
+                    if _is_later(tx_lt, tx_hash, overall_max_lt, overall_max_hash):
+                        overall_max_lt, overall_max_hash = tx_lt, tx_hash
+                except Exception as e:
+                    seen_hashes_cache.pop(tx_hash, None)
+                    logger.error(f"Failed to process tx {tx.get('hash')}: {e}")
+                    # Do NOT stop paging here — just skip this transaction.
+                    continue
+                    
+            # If we received fewer than limit, we are done paging
+            if len(txs) < batch_limit:
+                break
+
+            # More transactions may exist with same start_lt, so increase offset
+            offset += batch_limit
+            
+            await asyncio.sleep(1)
+
+    # Update last processed LT/hash after finishing all paging
+    if _is_later(overall_max_lt, overall_max_hash, last_transaction_lt, last_transaction_hash):
+        await update_last_lt_hash(overall_max_lt, overall_max_hash)
 
 
 async def ton_polling_job(app):
@@ -469,84 +501,6 @@ async def ton_polling_job(app):
     while True:
         await ton_polling(app)
         await asyncio.sleep(s.ton_network_delay)
-
-
-# Failed Transactions
-@sync_to_async
-def fetch_failed_transactions():
-    """Fetch unresolved failed TON transactions."""
-    return list(Transaction.objects.filter(atomic_failed=True, is_delete=False))
-
-
-@sync_to_async
-def apply_failed_transaction(user_id, tx_hash, balance_update: Decimal) -> bool:
-    try:
-        with transaction.atomic():
-            price = ton_price.get("price")
-            if price is None:
-                return False
-            
-            user = UserData.objects.select_for_update().get(id=user_id)
-
-            user.balance += balance_update
-            user.save()
-                            
-            Transaction.objects.filter(tx_id=tx_hash).update(
-                user=user,
-                atomic_failed=False
-            )
-
-        return True
-    except Exception as e:
-        logger.error(f"Atomic rolled back in apply_transaction(): {e}")
-        return False
-
-
-async def ton_failed_transactions(app):
-    """Retry unresolved failed transactions."""
-    failed_txs = await fetch_failed_transactions()
-    if not failed_txs:
-        return
-
-    # s: BotSettings = await get_settings()
-    price = ton_price.get("price")
-    if price is None:
-        logger.warning("TON price not available, skipping failed transaction processing")
-        return  # Skip if TON price unavailable
-
-    for tx in failed_txs:
-        try:
-            user_id = int(tx.comment, 16)
-            # Attempt to apply the transaction atomically
-            success = await apply_failed_transaction(
-                user_id=user_id,
-                tx_hash=tx.tx_id,
-                balance_update=Decimal(tx.amount) * Decimal(price),
-            )
-            if success:
-                # Notify user
-                try:
-                    usr_lng = await user_language(user_id)
-                    text = texts[usr_lng]["textChargeAccount"].format(
-                        tx.amount, price, tx.price_currency
-                    )
-                    await send_message_with_retry(
-                        bot=app.bot, chat_id=user_id,
-                        text=text, retry=2, parse_mode="Markdown"
-                    )
-                except Exception as e:
-                    logger.warning(f"Failed to notify user {tx.comment}: {e}")
-
-        except Exception as e:
-            logger.error(f"Failed to process failed transaction {tx.tx_id}: {e}")
-
-
-async def failed_transactions_job(app):
-    """Background loop to retry failed transactions periodically."""
-    s: BotSettings = await get_settings()
-    while True:
-        await ton_failed_transactions(app)
-        await asyncio.sleep(s.failed_transactions_delay)
 
 # endregion
 
@@ -651,7 +605,7 @@ async def account_info(query: CallbackQuery) -> None:
 
 @sync_to_async
 def get_transactions(user_id, start, limit):
-    qs = Transaction.objects.filter(user_id=user_id, is_delete=False, atomic_failed=False)
+    qs = Transaction.objects.filter(user_id=user_id, is_delete=False)
     total = qs.count()
     transactions = list(qs.order_by('-paid_time')[start:start+limit])
     return transactions, total
@@ -1042,6 +996,7 @@ async def product_categories(query: CallbackQuery):
     except Exception as e:
         logger.error(f"Error in product_categories function: {e}")
 
+
 @sync_to_async
 def get_available_products(category_id):
     return list(
@@ -1267,7 +1222,7 @@ async def payment(update: Update, context: CallbackContext, query: CallbackQuery
         return
 
     # Run the atomic block in sync code via sync_to_async
-    @sync_to_async
+    @sync_to_async(thread_sensitive=True)
     def process_payment():
         with transaction.atomic():
             # Lock user row
@@ -1278,21 +1233,29 @@ async def payment(update: Update, context: CallbackContext, query: CallbackQuery
             if user.balance < payment_amount:
                 return "not_enough", None, None
 
-            # Lock product row and fetch related Product
-            product_detail = ProductDetail.objects.select_for_update().select_related('product').filter(
-                product_id=prod_id, is_purchased=False
+            # Lock product row and fetch related Product            
+            product_detail = (
+                ProductDetail.objects
+                .select_for_update()
+                .select_related('product')
+                .filter(product_id=prod_id, is_purchased=False)
+                .order_by('id')[:1]  # limits the lock to only one row
             ).first()
+            
             if not product_detail:
                 return "sold_out", None, None
 
             # Update balances and product
-            user.balance -= payment_amount
+            if payment_amount != product_detail.product.price:
+                return "invalid_price", None, None
+            
+            user.balance -= product_detail.product.price
+            user.save()
+            
             product_detail.is_purchased = True
             product_detail.buyer = user
-            product_detail.purchase_date = timezone.now()
-            
+            product_detail.purchase_date = timezone.now()   
             product_detail.save()
-            user.save()
             
             # Return the related product name
             return "success", product_detail.details, product_detail.product
@@ -1304,6 +1267,8 @@ async def payment(update: Update, context: CallbackContext, query: CallbackQuery
     
     if status == "failed":
         await query.answer(text=texts[usr_lng]["textPaymentFailed"], show_alert=True)
+    elif status == "invalid_price":
+        await query.answer(text=texts[usr_lng]["textPriceChanged"], show_alert=True)
     elif status == "no_user":
         await query.answer(text=texts[usr_lng]["textNotUser"], show_alert=True)
     elif status == "not_enough":
@@ -1441,8 +1406,7 @@ async def start_background_tasks(application):
     # background task for getting TON price
     asyncio.create_task(ton_price_job())
     asyncio.create_task(ton_polling_job(application))
-    asyncio.create_task(failed_transactions_job(application))
-    
+        
 
 # Main function
 def main() -> None:

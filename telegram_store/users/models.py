@@ -67,11 +67,6 @@ class BotSettings(models.Model):
         verbose_name="TON Network Delay (seconds)",
         help_text="Interval between deposit address checks(Fetch transactions)"
     )
-    
-    failed_transactions_delay = models.PositiveIntegerField(
-        verbose_name="Failed Transactions Delay (seconds)",
-        help_text="Interval between checking failed transactions."
-    )
 
     # TON credentials
     ton_deposit_address = models.CharField(max_length=256, verbose_name="TON Deposit Address")

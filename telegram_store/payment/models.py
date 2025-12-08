@@ -9,7 +9,7 @@ class Transaction(models.Model):
         max_digits=18, decimal_places=9, verbose_name="TON amount")
     comment = models.CharField(
         max_length=64, verbose_name="Memo/tag/Comment", null=True)
-    tx_id = models.CharField(max_length=256, unique=True)  # blockchain hash
+    tx_id = models.CharField(max_length=128, unique=True)  # blockchain hash
     lt = models.CharField(max_length=64, verbose_name="Logical Time", null=True)
 
     price_per_ton = models.DecimalField(
@@ -19,7 +19,6 @@ class Transaction(models.Model):
     paid_time = models.DateTimeField(
                 auto_now_add=True, null=True)  # Created & Update Date
     is_delete = models.BooleanField(default=False)
-    atomic_failed =models.BooleanField(default=False)
 
     class Meta:
         ordering = ['-paid_time']
@@ -33,6 +32,8 @@ class Transaction(models.Model):
 class TonCursor(models.Model):
     key = models.CharField(max_length=32, unique=True)
     last_lt = models.BigIntegerField(default=0)
+    last_hash = models.CharField(max_length=128, null=True, blank=True,
+                                 default="")  # blockchain hash
     
     def __str__(self):
         return f"{self.last_lt}"
