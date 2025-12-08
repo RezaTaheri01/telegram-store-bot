@@ -1241,7 +1241,10 @@ async def payment(update: Update, context: CallbackContext, query: CallbackQuery
                 return "sold_out", None, None
 
             # Update balances and product
-            user.balance -= payment_amount
+            if payment_amount != product_detail.product.price:
+                return "invalid_price", None, None
+            
+            user.balance -= product_detail.product.price
             user.save()
             
             product_detail.is_purchased = True
@@ -1259,6 +1262,8 @@ async def payment(update: Update, context: CallbackContext, query: CallbackQuery
     
     if status == "failed":
         await query.answer(text=texts[usr_lng]["textPaymentFailed"], show_alert=True)
+    elif status == "invalid_price":
+        await query.answer(text=texts[usr_lng]["textPriceChanged"], show_alert=True)
     elif status == "no_user":
         await query.answer(text=texts[usr_lng]["textNotUser"], show_alert=True)
     elif status == "not_enough":
