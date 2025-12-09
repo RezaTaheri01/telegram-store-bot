@@ -8,7 +8,7 @@ class UserData(models.Model):
     last_name = models.CharField(max_length=64, null=True, blank=True)
     mobile_number = models.CharField(max_length=16, null=True, blank=True)  # null because it may be hidden
     username = models.CharField(max_length=64, null=True, blank=True)  # telegram check username to be unique
-    balance = models.DecimalField(max_digits=18, decimal_places=2, default=0.0, db_index=True)
+    balance = models.DecimalField(max_digits=18, decimal_places=4, default=0.0, db_index=True)
     language = models.CharField(max_length=8, default=LANG1, verbose_name='Language')
     utc_offset = models.FloatField(default=0.0)  # +3:30 => +3.5
 

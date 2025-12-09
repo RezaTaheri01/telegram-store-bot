@@ -11,7 +11,7 @@ from telegram.ext import (
 )
 
 # Others
-from decimal import Decimal
+from decimal import Decimal, ROUND_DOWN
 import logging
 from logging.handlers import RotatingFileHandler
 from asgiref.sync import sync_to_async
@@ -157,11 +157,13 @@ async def user_balance(update: Update, context: CallbackContext, query: Callback
 
         if balance is None:
             await check_create_account(update)
-            balance = 0
+            display_balance = Decimal("0.00")
+        else:
+            display_balance = balance.quantize(Decimal("0.01"), rounding=ROUND_DOWN)
 
         await send_message(update=update,
                            query=query,
-                           txt=texts[usr_lng]["textBalance"].format(balance, s.wallet_currency_sign),
+                           txt=texts[usr_lng]["textBalance"].format(display_balance, s.wallet_currency_sign),
                            reply_markup=buttons[usr_lng]["balance_markup"])
     except Exception as e:
         logger.error(f"Error in user_balance function: {e}")
