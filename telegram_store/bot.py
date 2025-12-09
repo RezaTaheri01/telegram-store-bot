@@ -149,9 +149,9 @@ async def user_balance(update: Update, context: CallbackContext, query: Callback
     try:
         s: BotSettings = await get_settings()
         balance = await sync_to_async(
-            lambda: UserData.objects.filter(id=user_id)
-                                    .values_list("balance", flat=True)
-                                    .first(),
+            UserData.objects.filter(id=user_id)
+                            .values_list("balance", flat=True)
+                            .first,
             thread_sensitive=True
         )()
 
@@ -418,7 +418,7 @@ async def ton_polling(app):
                                         
                     # Skip if already in DB
                     exists = await sync_to_async(
-                        lambda: Transaction.objects.filter(comment=comment_hex, tx_id=tx_hash).exists(),
+                        Transaction.objects.filter(comment=comment_hex, tx_id=tx_hash).exists,
                         thread_sensitive=True
                     )()
                     if exists:
