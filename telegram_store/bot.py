@@ -433,8 +433,9 @@ async def ton_polling(app):
                             overall_max_lt, overall_max_hash = tx_lt, tx_hash
                         continue                    
                   
-                    ton_amount = value / 1e9
-                    balance_update = Decimal(ton_amount) * Decimal(price)
+                    value_dec = Decimal(value)
+                    ton_amount = value_dec / Decimal("1e9")
+                    balance_update = ton_amount * Decimal(price)
 
                     success = await apply_transaction(
                         user_id=user_id,
