@@ -27,8 +27,11 @@ SEP_LINE_HTML = "\n" + "_" * 40 + "\n\n"
 # Extra TON added as a safety margin when estimating required amount
 EXTRA_TON_ADD = 0.05
 
-# Number of decimal places to store/display the TON price
+# Number of decimal places to store/display the TON price(positive int)
 TON_PRICE_DECIMAL_PLACE = 3
+
+# Number of decimal places to display the user balance(positive int)
+BALANCE_DECIMAL_PLACE = 3
 
 # region Multi language texts
 # Attention the order of languages are important(should be same as lang and line 109 in telegram_store/setting.py)

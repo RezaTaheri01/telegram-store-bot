@@ -159,7 +159,8 @@ async def user_balance(update: Update, context: CallbackContext, query: Callback
             await check_create_account(update)
             display_balance = Decimal("0.00")
         else:
-            display_balance = balance.quantize(Decimal("0.01"), rounding=ROUND_DOWN)
+            quantize_str = f"1.{'0' * BALANCE_DECIMAL_PLACE}"  # "1.00" if 2 decimals
+            display_balance = balance.quantize(Decimal(quantize_str), rounding=ROUND_DOWN)
 
         await send_message(update=update,
                            query=query,
