@@ -59,6 +59,7 @@ cd telegram-store-bot/telegram_store
 2. **Install dependencies (use [virtualenv](https://www.w3schools.com/python/python_virtualenv.asp) recommended):**
 
 ```bash
+pip install --upgrade pip
 pip install -r req.txt
 ```
 
@@ -107,7 +108,7 @@ ADMIN_URL=adminadmin
 ```bash
 python manage.py makemigrations users payment products
 python manage.py migrate
-python createsuperuser
+python manage.py createsuperuser
 ```
 
 6. **Start Django backend:**
