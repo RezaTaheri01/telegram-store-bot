@@ -233,7 +233,7 @@ async def get_ton_price():
                     price = api["parse"](data)
 
                     if price is not None:
-                        ton_price.update(price=round(float(price), 3))
+                        ton_price.update(price=round(float(price), TON_PRICE_DECIMAL_PLACE))
                         return ton_price.get("price")
 
                     logger.warning(f"Price missing in response from {api['url']}")
@@ -1131,11 +1131,21 @@ async def product_payment_detail(query: CallbackQuery):
 
         # Build message text
         product_price = product_detail.product.price
-        ton_needed = round((product_price / ton_price['price']) + 0.05, 2)
+        
+        price = ton_price.get("price") 
+        
+        ton_needed = None
+        if price is not None:
+            ton_needed = round(product_price / ton_price["price"] + EXTRA_TON_ADD, 2)
+            
+        ton_display = ""
+        if ton_needed is not None:
+            ton_display = f"(~{ton_needed} TON)"
+            
         message_text = texts[usr_lng]["textPurchaseBill"].format(
             await get_name(usr_lng, product_detail.product),
             product_detail.product.price,
-            f"{s.wallet_currency} (~{ton_needed} TON)",
+            f"{s.wallet_currency} {ton_display}",
             available_count
         ) + description
 
