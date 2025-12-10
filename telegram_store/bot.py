@@ -62,6 +62,7 @@ logger.addHandler(handler)
 # TTLCache: maxsize 1 because you only have one settings object, TTL 10 minutes
 ton_price: TTLCache = TTLCache(maxsize=1, ttl=600)
 settings_cache: TTLCache = TTLCache(maxsize=1, ttl=600)
+user_product_pay_spam = TTLCache(maxsize=1000, ttl=3)
 
 language_cache: LRUCache = LRUCache(maxsize=1000)
 timezone_cache: LRUCache = LRUCache(maxsize=1000)
@@ -1231,6 +1232,13 @@ async def payment(update: Update, context: CallbackContext, query: CallbackQuery
     try:
         payment_amount: int = int(query.data.split('_')[1])
         prod_id: int = int(query.data.split('_')[2])
+        
+        key = user_id
+        if user_product_pay_spam.get(key):
+            user_product_pay_spam[key] = True
+            return
+        user_product_pay_spam[key] = True
+        
     except (IndexError, ValueError):
         await query.answer(texts[usr_lng]["textInvalidPaymentAmount"], show_alert=True)
         return
@@ -1290,6 +1298,8 @@ async def payment(update: Update, context: CallbackContext, query: CallbackQuery
     elif status == "sold_out":
         await query.answer(text=texts[usr_lng]["textProductSoldOut"], show_alert=True)
     elif status == "success":
+        await query.answer(text=texts[usr_lng]["textSuccessfulPurchase"], show_alert=True)
+         
         await send_message_with_retry(
             bot=context.bot,
             chat_id=query.message.chat.id,
