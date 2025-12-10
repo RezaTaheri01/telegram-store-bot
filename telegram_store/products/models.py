@@ -19,7 +19,7 @@ class Product(models.Model):
     category = models.ForeignKey(to=Category, on_delete=models.SET_NULL, null=True, verbose_name="Category")
     name = models.CharField(max_length=32, verbose_name="Product Name", null=False)  # unique base on category
     image = models.ImageField(upload_to='products/', null=True, blank=True, verbose_name="Product Image")
-    price = models.IntegerField(verbose_name="Product Price")
+    price = models.PositiveIntegerField(verbose_name="Product Price")
     description = models.TextField(verbose_name="Product Description", null=True, blank=True)
     is_delete = models.BooleanField(default=False, blank=True)
     order = models.IntegerField(default=0)
