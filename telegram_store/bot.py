@@ -960,7 +960,7 @@ async def product_categories(query: CallbackQuery):
     usr_lng = await user_language(query.from_user.id)
 
   # Only categories that have at least one product with available ProductDetail
-    categories_qs = Category.objects.annotate(
+    categories_qs = Category.objects.filter(is_delete=False).annotate(
         has_available_products=Exists(
             ProductDetail.objects.filter(
                 product__category=OuterRef('pk'),
