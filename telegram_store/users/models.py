@@ -3,7 +3,7 @@ from bot_settings import LANG1
 
 
 class UserData(models.Model):
-    id = models.IntegerField(primary_key=True, unique=True)  # Telegram user ID
+    id = models.BigIntegerField(primary_key=True, unique=True)  # Telegram user ID
     first_name = models.CharField(max_length=64, null=True, blank=True)
     last_name = models.CharField(max_length=64, null=True, blank=True)
     mobile_number = models.CharField(max_length=16, null=True, blank=True)  # null because it may be hidden
