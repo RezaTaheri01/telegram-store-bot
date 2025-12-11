@@ -25,7 +25,7 @@ class CategoryAdmin(admin.ModelAdmin):
 
 @admin.register(models.Product)
 class ProductAdmin(admin.ModelAdmin):
-    list_display = ["name", "category", "price", "order"]
+    list_display = ["name", "category", "price", "order", "is_delete"]
     readonly_fields = ["name", "description"]
     list_editable = ["order"]
     ordering = ["category__name", "order"]
