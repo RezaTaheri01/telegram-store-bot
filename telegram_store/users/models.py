@@ -70,6 +70,9 @@ class BotSettings(models.Model):
 
     # TON credentials
     ton_deposit_address = models.CharField(max_length=256, verbose_name="TON Deposit Address")
+    ton_deposit_domain = models.CharField(max_length=128, verbose_name="TON Deposit Domain",
+                                          blank=True, null=True)
+    
     ton_network_api_key = models.CharField(
         max_length=256,
         verbose_name="TON Network API Key",

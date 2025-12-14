@@ -531,13 +531,15 @@ async def pay_link(update: Update, context: ContextTypes.DEFAULT_TYPE, query: Ca
                             reply_markup=buttons[usr_lng]["balance_markup"])
         return
     
+    ton_address = s.ton_deposit_domain or s.ton_deposit_address
+    
     await check_create_account(update)
     
-    link = await generate_ton_link(user_id, s.ton_deposit_address)
+    link = await generate_ton_link(user_id, ton_address)
 
     text = (
         texts[usr_lng]["textPaymentLink"].format(
-            s.ton_deposit_address, hex(user_id).lower(), price, s.wallet_currency_sign)
+            ton_address, hex(user_id).lower(), price, s.wallet_currency_sign)
     )
 
     pay_key = [
