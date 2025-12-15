@@ -111,7 +111,7 @@ python manage.py migrate
 python manage.py createsuperuser
 ```
 
-6. **Start Django backend(Development):**
+6. **Start Django backend:**
 
 ```bash
 python manage.py runserver
