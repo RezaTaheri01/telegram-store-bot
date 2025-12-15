@@ -111,10 +111,16 @@ python manage.py migrate
 python manage.py createsuperuser
 ```
 
-6. **Start Django backend:**
+6. **Start Django backend(Development):**
 
 ```bash
 python manage.py runserver
+```
+
+**Production**: use **Gunicorn** or **Uvicorn**:
+
+```bash
+gunicorn telegram_store.asgi:application -k uvicorn.workers.UvicornWorker -w 1 -b 0.0.0.0:8000
 ```
 
 7. **Configure Bot Settings** in Django Admin:
@@ -130,6 +136,8 @@ python manage.py runserver
 ```bash
 python bot.py
 ```
+
+**Production**: run as a background service, via `nohup`, **systemd**, or **Docker**, so it stays alive and automatically restarts if it crashes.
 
 ---
 
@@ -180,6 +188,9 @@ This ensures **no transactions are skipped** and **no double-processing occurs**
 * Monitor LRU cache size (default: 10,000 entries).
 * Run `bot.py` as a **background worker/service**.
 * Separate **web (Django)** and **bot (worker)** processes.
+* Ensure PostgreSQL is properly monitored and backed up.
+* Set DEBUG=False and configure ALLOWED_HOSTS properly.
+* Secure sensitive environment variables (SECRET_KEY, TOKEN, REDIS_URL).
 
 ---
 
