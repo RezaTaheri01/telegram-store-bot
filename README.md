@@ -21,6 +21,7 @@ A fast, reliable Telegram store bot that allows users to **browse products, top 
 10. [Testing & Development 🧪](#tests--development)
 11. [License 📜](#license)
 12. [Disclaimer 🤖](#disclaimer)
+13. [Tutorials](#tutorials)
 
 ---
 
@@ -236,3 +237,13 @@ GPL-3.0 — see `LICENSE` file.
 ## Disclaimer
 
 Parts of this README were assisted by AI. All final code and implementation decisions were made manually by the author.
+
+
+## Tutorials
+
+* [Add language](https://github.com/RezaTaheri01/telegram-store-bot/issues/4#issue-3732602584)
+* [Remove Multi-Language](https://github.com/RezaTaheri01/telegram-store-bot/issues/2#issuecomment-3621836277)
+
+---
+
+- [⬆️ Top](#table-of-contents)
