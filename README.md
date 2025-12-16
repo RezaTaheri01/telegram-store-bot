@@ -212,7 +212,7 @@ flowchart LR
 ## Security & Privacy
 
 * Keep `SECRET_KEY` and API keys **out of source control**.
-* Use **HTTPS** for webhooks (if switching to webhook mode).
+* Use **HTTPS** for [webhooks](https://github.com/RezaTaheri01/telegram-store-bot-web-hook) (if switching to webhook mode).
 * Validate and sanitize user input.
 
 ---
